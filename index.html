@@ -62,53 +62,50 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            <!-- Leaderboard Container (แทนที่กราฟ) -->
-            <div class="school-card p-6 rounded-xl shadow-md col-span-1 lg:col-span-1 flex flex-col">
-                <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด</h2>
-                <div class="overflow-x-auto max-h-[450px] overflow-y-auto">
-                    <table class="w-full text-left border-collapse text-sm">
-                        <thead class="sticky top-0 school-table-header">
-                            <tr class="border-b border-[#d7ccc8]">
-                                <th class="p-2 text-center w-12">#</th>
-                                <th class="p-2">ชื่อ (Who)</th>
-                                <th class="p-2 text-right">จำนวน (BNK)</th>
-                            </tr>
-                        </thead>
-                        <tbody id="leaderboardBody">
-                            <tr>
-                                <td colspan="3" class="p-4 text-center text-[#8d6e63]">กำลังโหลดจัดอันดับ...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+        <!-- Leaderboard Container (ตารางใหญ่เต็มพื้นที่) -->
+        <div class="school-card p-6 rounded-xl shadow-md">
+            <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">🏆 จัดอันดับผู้ถือเหรียญสูงสุดทั้งหมด (Leaderboard)</h2>
+            <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 school-table-header">
+                        <tr class="border-b border-[#d7ccc8]">
+                            <th class="p-3 text-center w-20">อันดับ</th>
+                            <th class="p-3">ชื่อ / Address (Who)</th>
+                            <th class="p-3">รหัสกระเป๋า (CodeWallet)</th>
+                            <th class="p-3 text-right">จำนวนเหรียญ (BNK)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <tr>
+                            <td colspan="4" class="p-6 text-center text-[#8d6e63]">กำลังโหลดข้อมูลจัดอันดับทั้งหมดจากบล็อกเชน...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-
-            <!-- Real-time Transactions Container -->
-            <div class="school-card p-6 rounded-xl shadow-md col-span-1 lg:col-span-2">
-                <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">📜 Live Transfers (Real-time)</h2>
-                <div class="overflow-x-auto max-h-[450px] overflow-y-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead class="sticky top-0 school-table-header">
-                            <tr class="border-b border-[#d7ccc8]">
-                                <th class="p-3">From (Who)</th>
-                                <th class="p-3">To (Who)</th>
-                                <th class="p-3 text-right">Amount</th>
-                            </tr>
-                        </thead>
-                        <tbody id="txTableBody">
-                            <!-- ข้อมูล Real-time จะเพิ่มที่นี่ -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
         </div>
+
+        <!-- Real-time Transactions Container -->
+        <div class="school-card p-6 rounded-xl shadow-md">
+            <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">📜 Live Transfers (Real-time)</h2>
+            <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 school-table-header">
+                        <tr class="border-b border-[#d7ccc8]">
+                            <th class="p-3">From (Who)</th>
+                            <th class="p-3">To (Who)</th>
+                            <th class="p-3 text-right">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody id="txTableBody">
+                        <!-- ข้อมูล Real-time จะเพิ่มที่นี่ -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
     <script>
-        // ตั้งค่า Token ปัจจุบัน (สามารถสลับไป token อื่นได้ง่ายในอนาคต)
         let currentTokenConfig = {
             name: "BNK Governance Token",
             symbol: "BNK",
@@ -128,7 +125,6 @@
         let walletMapping = {};
         let whoBalances = {}; 
 
-        // ฟังก์ชันสลับหน้า Token (เตรียมรองรับ Token ใหม่)
         function switchToken(tokenKey) {
             const btnBnk = document.getElementById('tab-BNK');
             const btnNew = document.getElementById('tab-NEW');
@@ -144,7 +140,6 @@
             } else {
                 btnNew.className = "px-4 py-2 rounded-lg font-bold school-btn shadow-sm";
                 btnBnk.className = "px-4 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] hover:bg-[#c5b9b6] transition-colors";
-                // ตรงนี้สามารถเปลี่ยน Contract Address ของ Token ใหม่ได้ในอนาคต
                 currentTokenConfig = {
                     name: "New Custom Token",
                     symbol: "NEW",
@@ -163,11 +158,12 @@
                 complete: function(results) {
                     walletMapping = {};
                     results.data.forEach(row => {
-                        if(row.Address && row.Who) {
-                            walletMapping[row.Address.toLowerCase().trim()] = {
-                                who: row.Who,
-                                codeWallet: row.CodeWallet,
-                                walletName: row.Wallet
+                        if(row.Address) {
+                            const addr = row.Address.toLowerCase().trim();
+                            walletMapping[addr] = {
+                                who: (row.Who && row.Who.trim() !== "") ? row.Who.trim() : row.Address.trim(),
+                                codeWallet: row.CodeWallet ? row.CodeWallet.trim() : "-",
+                                walletName: row.Wallet ? row.Wallet.trim() : "-"
                             };
                         }
                     });
@@ -185,19 +181,20 @@
             const uniqueAddresses = Object.keys(walletMapping);
             
             for (let i = 0; i < uniqueAddresses.length; i++) {
-                const addr = uniqueAddresses[i].trim(); 
+                const addr = uniqueAddresses[i]; 
                 if (!ethers.utils.isAddress(addr)) continue;
 
                 try {
                     const bal = await contract.balanceOf(addr);
                     const balFloat = parseFloat(ethers.utils.formatUnits(bal, 18));
-                    const who = walletMapping[addr.toLowerCase()].who;
                     
-                    if (whoBalances[who]) {
-                        whoBalances[who] += balFloat;
-                    } else {
-                        whoBalances[who] = balFloat;
-                    }
+                    // เก็บข้อมูลโดยใช้ Address หรือชื่อ Who เป็นคีย์หลัก
+                    const info = walletMapping[addr];
+                    whoBalances[addr] = {
+                        displayName: info.who,
+                        codeWallet: info.codeWallet,
+                        balance: balFloat
+                    };
                 } catch(e) {
                     console.error("ดึงยอดเงินไม่สำเร็จสำหรับ:", addr, e);
                 }
@@ -205,41 +202,36 @@
                 await new Promise(resolve => setTimeout(resolve, 200));
             }
 
-            // กรองยอดที่เป็น 0 ออก
-            Object.keys(whoBalances).forEach(key => {
-                if(whoBalances[key] === 0) delete whoBalances[key];
-            });
-
             renderLeaderboard();
         }
 
-        // ฟังก์ชันสร้างตารางจัดอันดับ (เรียงจากมากไปน้อย)
+        // ฟังก์ชันสร้างตารางจัดอันดับใหญ่ (แสดงทุกอันดับ เรียงจากมากไปน้อย)
         function renderLeaderboard() {
             const tbody = document.getElementById('leaderboardBody');
             tbody.innerHTML = '';
 
-            // แปลง object เป็น array แล้วเรียงลำดับตามยอดเหรียญจากมากไปน้อย
-            const sortedHolders = Object.entries(whoBalances).sort((a, b) => b[1] - a[1]);
+            // แปลง object เป็น array แล้วเรียงลำดับตาม balance จากมากไปน้อย
+            const sortedHolders = Object.values(whoBalances).sort((a, b) => b.balance - a.balance);
 
             if (sortedHolders.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่พบข้อมูลยอดถือครอง</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-[#8d6e63]">ไม่พบข้อมูลยอดถือครอง</td></tr>`;
                 return;
             }
 
-            sortedHolders.forEach(([who, amount], index) => {
+            sortedHolders.forEach((holder, index) => {
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
                 
-                // ตกแต่งลำดับที่ 1-3 ให้ดูเด่นขึ้น
                 let rankBadge = `<span class="text-[#8d6e63] font-medium">${index + 1}</span>`;
-                if(index === 0) rankBadge = `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold text-xs">🥇 1</span>`;
-                if(index === 1) rankBadge = `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold text-xs">🥈 2</span>`;
-                if(index === 2) rankBadge = `<span class="bg-orange-50 text-orange-800 px-2 py-0.5 rounded-full font-bold text-xs">🥉 3</span>`;
+                if(index === 0) rankBadge = `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold text-xs">🥇 1</span>`;
+                if(index === 1) rankBadge = `<span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold text-xs">🥈 2</span>`;
+                if(index === 2) rankBadge = `<span class="bg-orange-50 text-orange-800 px-2.5 py-1 rounded-full font-bold text-xs">🥉 3</span>`;
 
                 tr.innerHTML = `
-                    <td class="p-2 text-center">${rankBadge}</td>
-                    <td class="p-2 font-medium text-[#4a3b32]">${who}</td>
-                    <td class="p-2 text-right font-semibold text-[#5d4037]">${amount.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    <td class="p-3 text-center">${rankBadge}</td>
+                    <td class="p-3 font-medium text-[#4a3b32]">${holder.displayName}</td>
+                    <td class="p-3 text-[#8d6e63] text-sm">${holder.codeWallet}</td>
+                    <td class="p-3 text-right font-semibold text-[#5d4037]">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -281,22 +273,14 @@
                     const fromLower = from.toLowerCase();
                     const toLower = to.toLowerCase();
 
-                    if (walletMapping[fromLower]) {
-                        const whoFrom = walletMapping[fromLower].who;
-                        if (whoBalances[whoFrom] !== undefined) {
-                            whoBalances[whoFrom] -= amountFloat;
-                            if (whoBalances[whoFrom] < 0) whoBalances[whoFrom] = 0;
-                            needsUpdate = true;
-                        }
+                    if (whoBalances[fromLower]) {
+                        whoBalances[fromLower].balance -= amountFloat;
+                        if (whoBalances[fromLower].balance < 0) whoBalances[fromLower].balance = 0;
+                        needsUpdate = true;
                     }
 
-                    if (walletMapping[toLower]) {
-                        const whoTo = walletMapping[toLower].who;
-                        if (whoBalances[whoTo] !== undefined) {
-                            whoBalances[whoTo] += amountFloat;
-                        } else {
-                            whoBalances[whoTo] = amountFloat;
-                        }
+                    if (whoBalances[toLower]) {
+                        whoBalances[toLower].balance += amountFloat;
                         needsUpdate = true;
                     }
 
@@ -311,7 +295,7 @@
 
         function getIdentity(address) {
             const addrLower = address.toLowerCase();
-            if (walletMapping[addrLower] && walletMapping[addrLower].who) {
+            if (walletMapping[addrLower] && walletMapping[addrLower].who !== address) {
                 return `${walletMapping[addrLower].who} <br><span class="text-xs text-[#8d6e63]">(${walletMapping[addrLower].codeWallet})</span>`;
             }
             return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
