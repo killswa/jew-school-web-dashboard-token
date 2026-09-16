@@ -3,52 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BNK Governance Dashboard</title>
+    <title>BNK Governance Dashboard - School Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- ใช้ Ethers.js จาก cdnjs ที่เสถียรกว่า -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* ธีมสีน้ำตาล-ครีม สไตล์โรงเรียน */
+        body {
+            background-color: #fcf8f2;
+            color: #4a3b32;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .school-card {
+            background-color: #fffdf9;
+            border: 2px solid #e6d7c3;
+        }
+        .school-header {
+            background-color: #795548;
+            color: #fffefb;
+        }
+        .school-btn {
+            background-color: #8d6e63;
+            color: #ffffff;
+            transition: background-color 0.2s;
+        }
+        .school-btn:hover {
+            background-color: #6d4c41;
+        }
+        .school-table-header {
+            background-color: #efebe9;
+            color: #5d4037;
+        }
+    </style>
 </head>
-<body class="bg-gray-100 p-4 md:p-8 font-sans">
+<body class="p-4 md:p-8">
 
     <div class="max-w-7xl mx-auto space-y-6">
+        
+        <!-- Tab สำหรับรองรับ Token แบบใหม่ในอนาคต -->
+        <div class="flex gap-2 border-b border-[#d7ccc8] pb-2">
+            <button onclick="switchToken('BNK')" id="tab-BNK" class="px-4 py-2 rounded-lg font-bold school-btn shadow-sm">
+                BNK Governance Token
+            </button>
+            <button onclick="switchToken('NEW')" id="tab-NEW" class="px-4 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] hover:bg-[#c5b9b6] transition-colors">
+                New Token (Coming Soon)
+            </button>
+        </div>
+
         <!-- Header -->
-        <div class="bg-white p-6 rounded-lg shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="school-card p-6 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800" id="tokenName">BNK Governance Token</h1>
-                <p class="text-gray-500" id="tokenSymbol">Loading...</p>
+                <h1 class="text-3xl font-bold" id="tokenName">BNK Governance Token</h1>
+                <p class="text-[#8d6e63]" id="tokenSymbol">Loading...</p>
             </div>
             <div class="text-center md:text-right">
-                <p class="text-sm text-gray-500">Total Supply</p>
-                <p class="text-2xl font-bold text-blue-600" id="totalSupply">0 BNK</p>
+                <p class="text-sm text-[#8d6e63]">Total Supply</p>
+                <p class="text-2xl font-bold text-[#5d4037]" id="totalSupply">0 BNK</p>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            <!-- Pie Chart Container -->
-            <div class="bg-white p-6 rounded-lg shadow-md col-span-1 flex flex-col">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Token Distribution (By Who)</h2>
-                <div class="flex-grow flex items-center justify-center relative min-h-[300px]">
-                    <canvas id="holdersChart"></canvas>
+            <!-- Leaderboard Container (แทนที่กราฟ) -->
+            <div class="school-card p-6 rounded-xl shadow-md col-span-1 lg:col-span-1 flex flex-col">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด</h2>
+                <div class="overflow-x-auto max-h-[450px] overflow-y-auto">
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead class="sticky top-0 school-table-header">
+                            <tr class="border-b border-[#d7ccc8]">
+                                <th class="p-2 text-center w-12">#</th>
+                                <th class="p-2">ชื่อ (Who)</th>
+                                <th class="p-2 text-right">จำนวน (BNK)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody">
+                            <tr>
+                                <td colspan="3" class="p-4 text-center text-[#8d6e63]">กำลังโหลดจัดอันดับ...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
             <!-- Real-time Transactions Container -->
-            <div class="bg-white p-6 rounded-lg shadow-md col-span-1 lg:col-span-2">
-                <h2 class="text-xl font-bold text-gray-800 mb-4">Live Transfers (Real-time)</h2>
-                <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+            <div class="school-card p-6 rounded-xl shadow-md col-span-1 lg:col-span-2">
+                <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">📜 Live Transfers (Real-time)</h2>
+                <div class="overflow-x-auto max-h-[450px] overflow-y-auto">
                     <table class="w-full text-left border-collapse">
-                        <thead class="sticky top-0 bg-white">
-                            <tr class="bg-gray-50 text-gray-600 text-sm border-b">
+                        <thead class="sticky top-0 school-table-header">
+                            <tr class="border-b border-[#d7ccc8]">
                                 <th class="p-3">From (Who)</th>
                                 <th class="p-3">To (Who)</th>
                                 <th class="p-3 text-right">Amount</th>
                             </tr>
                         </thead>
                         <tbody id="txTableBody">
-                            <!-- ข้อมูลจะถูกเพิ่มที่นี่อัตโนมัติ -->
+                            <!-- ข้อมูล Real-time จะเพิ่มที่นี่ -->
                         </tbody>
                     </table>
                 </div>
@@ -58,8 +108,14 @@
     </div>
 
     <script>
+        // ตั้งค่า Token ปัจจุบัน (สามารถสลับไป token อื่นได้ง่ายในอนาคต)
+        let currentTokenConfig = {
+            name: "BNK Governance Token",
+            symbol: "BNK",
+            contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
+        };
+
         const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuX8P2ftAdB_U1rv9j2eWozaD-1F216lIpVOjCIIf4JbffXzt-aa_JVZmttXNPM1DwBSMssUF0-CRM/pub?output=csv";
-        const CONTRACT_ADDRESS = "0xA992ad80Fa6136702382123Ae717890Bc587491d";
 
         const ABI = [
             "function name() view returns (string)",
@@ -71,16 +127,43 @@
 
         let walletMapping = {};
         let whoBalances = {}; 
-        let pieChartInstance = null;
+
+        // ฟังก์ชันสลับหน้า Token (เตรียมรองรับ Token ใหม่)
+        function switchToken(tokenKey) {
+            const btnBnk = document.getElementById('tab-BNK');
+            const btnNew = document.getElementById('tab-NEW');
+
+            if(tokenKey === 'BNK') {
+                btnBnk.className = "px-4 py-2 rounded-lg font-bold school-btn shadow-sm";
+                btnNew.className = "px-4 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] hover:bg-[#c5b9b6] transition-colors";
+                currentTokenConfig = {
+                    name: "BNK Governance Token",
+                    symbol: "BNK",
+                    contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
+                };
+            } else {
+                btnNew.className = "px-4 py-2 rounded-lg font-bold school-btn shadow-sm";
+                btnBnk.className = "px-4 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] hover:bg-[#c5b9b6] transition-colors";
+                // ตรงนี้สามารถเปลี่ยน Contract Address ของ Token ใหม่ได้ในอนาคต
+                currentTokenConfig = {
+                    name: "New Custom Token",
+                    symbol: "NEW",
+                    contractAddress: "0x0000000000000000000000000000000000000000" 
+                };
+                alert("สลับมายังหน้า Token ใหม่ (ยังไม่ได้ระบุ Contract Address จริง)");
+                return;
+            }
+            loadGoogleSheetData();
+        }
 
         function loadGoogleSheetData() {
             Papa.parse(GOOGLE_SHEET_CSV_URL, {
                 download: true,
                 header: true,
                 complete: function(results) {
+                    walletMapping = {};
                     results.data.forEach(row => {
                         if(row.Address && row.Who) {
-                            // Trim เผื่อมีช่องว่างแฝงมาใน Google Sheet
                             walletMapping[row.Address.toLowerCase().trim()] = {
                                 who: row.Who,
                                 codeWallet: row.CodeWallet,
@@ -97,24 +180,15 @@
             });
         }
 
-        async function fetchBalancesAndDrawChart(contract) {
+        async function fetchBalancesAndLeaderboard(contract) {
             whoBalances = {};
             const uniqueAddresses = Object.keys(walletMapping);
-            console.log("Total addresses to check:", uniqueAddresses.length);
             
             for (let i = 0; i < uniqueAddresses.length; i++) {
-                // ตัดช่องว่างซ้ายขวาออก ป้องกันข้อมูลแฝงจาก CSV
                 const addr = uniqueAddresses[i].trim(); 
-                
-                // เช็คว่ารูปแบบ Wallet Address ถูกต้องหรือไม่ (ต้องขึ้นต้นด้วย 0x และยาว 42 ตัวอักษร)
-                if (!ethers.utils.isAddress(addr)) {
-                    console.warn(`ข้ามข้อมูลที่ไม่ใช่ Wallet: "${addr}"`);
-                    continue; // ข้ามไปดึงข้อมูลคนถัดไปทันที
-                }
+                if (!ethers.utils.isAddress(addr)) continue;
 
                 try {
-                    // แสดง Log ให้รู้ว่ากำลังเช็คกระเป๋าใบไหน
-                    console.log(`กำลังดึงข้อมูลของ ${addr} (${i+1}/${uniqueAddresses.length})`);
                     const bal = await contract.balanceOf(addr);
                     const balFloat = parseFloat(ethers.utils.formatUnits(bal, 18));
                     const who = walletMapping[addr.toLowerCase()].who;
@@ -128,68 +202,50 @@
                     console.error("ดึงยอดเงินไม่สำเร็จสำหรับ:", addr, e);
                 }
                 
-                // หน่วงเวลาเพิ่มเป็น 300 มิลลิวินาที ให้เซิร์ฟเวอร์ Token X หายใจ
-                await new Promise(resolve => setTimeout(resolve, 300));
+                await new Promise(resolve => setTimeout(resolve, 200));
             }
 
-            // ลบคนที่ยอดเป็น 0 ออกจากกราฟ
+            // กรองยอดที่เป็น 0 ออก
             Object.keys(whoBalances).forEach(key => {
                 if(whoBalances[key] === 0) delete whoBalances[key];
             });
 
-            drawChart();
-            console.log("สร้างกราฟสำเร็จ!");
+            renderLeaderboard();
         }
 
-        function drawChart() {
-            const ctx = document.getElementById('holdersChart').getContext('2d');
-            const labels = Object.keys(whoBalances);
-            const data = Object.values(whoBalances);
-            
-            const colors = [
-                '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
-                '#EC4899', '#06B6D4', '#F97316', '#64748B', '#84CC16'
-            ];
+        // ฟังก์ชันสร้างตารางจัดอันดับ (เรียงจากมากไปน้อย)
+        function renderLeaderboard() {
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = '';
 
-            if(pieChartInstance) {
-                pieChartInstance.data.labels = labels;
-                pieChartInstance.data.datasets[0].data = data;
-                pieChartInstance.update();
-            } else {
-                pieChartInstance = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            data: data,
-                            backgroundColor: colors,
-                            borderWidth: 2,
-                            borderColor: '#ffffff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom' },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.label || '';
-                                        if (label) { label += ': '; }
-                                        label += context.parsed.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' BNK';
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+            // แปลง object เป็น array แล้วเรียงลำดับตามยอดเหรียญจากมากไปน้อย
+            const sortedHolders = Object.entries(whoBalances).sort((a, b) => b[1] - a[1]);
+
+            if (sortedHolders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่พบข้อมูลยอดถือครอง</td></tr>`;
+                return;
             }
+
+            sortedHolders.forEach(([who, amount], index) => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
+                
+                // ตกแต่งลำดับที่ 1-3 ให้ดูเด่นขึ้น
+                let rankBadge = `<span class="text-[#8d6e63] font-medium">${index + 1}</span>`;
+                if(index === 0) rankBadge = `<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold text-xs">🥇 1</span>`;
+                if(index === 1) rankBadge = `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full font-bold text-xs">🥈 2</span>`;
+                if(index === 2) rankBadge = `<span class="bg-orange-50 text-orange-800 px-2 py-0.5 rounded-full font-bold text-xs">🥉 3</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-2 text-center">${rankBadge}</td>
+                    <td class="p-2 font-medium text-[#4a3b32]">${who}</td>
+                    <td class="p-2 text-right font-semibold text-[#5d4037]">${amount.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                `;
+                tbody.appendChild(tr);
+            });
         }
 
         async function initBlockchain() {
-            // เช็คว่ามี MetaMask หรือ Web3 Wallet ติดตั้งอยู่หรือไม่
             if (typeof window.ethereum === 'undefined') {
                 alert("ไม่พบ MetaMask! กรุณาติดตั้ง MetaMask เพื่อดูข้อมูล Dashboard");
                 document.getElementById('tokenSymbol').innerText = "MetaMask not found";
@@ -197,14 +253,11 @@
             }
 
             try {
-                // ขอสิทธิ์เชื่อมต่อกับ MetaMask ของผู้ใช้
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
 
-                // ใช้ MetaMask เป็น Provider
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+                const contract = new ethers.Contract(currentTokenConfig.contractAddress, ABI, provider);
 
-                // ดึงข้อมูลพื้นฐานของ Token
                 const [name, symbol, supply] = await Promise.all([
                     contract.name(),
                     contract.symbol(),
@@ -217,16 +270,14 @@
                 const formattedSupply = ethers.utils.formatUnits(supply, 18);
                 document.getElementById('totalSupply').innerText = parseFloat(formattedSupply).toLocaleString() + " " + symbol;
 
-                // โหลด Balance ตอนเริ่มต้น และวาดกราฟ
-                await fetchBalancesAndDrawChart(contract);
+                await fetchBalancesAndLeaderboard(contract);
 
-                // ดักจับ Event 'Transfer' แบบ Real-time
+                // ดักจับ Event Transfer แบบ Real-time
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                    
                     addTransactionToTable(from, to, amountFloat);
 
-                    let chartNeedsUpdate = false;
+                    let needsUpdate = false;
                     const fromLower = from.toLowerCase();
                     const toLower = to.toLowerCase();
 
@@ -235,7 +286,7 @@
                         if (whoBalances[whoFrom] !== undefined) {
                             whoBalances[whoFrom] -= amountFloat;
                             if (whoBalances[whoFrom] < 0) whoBalances[whoFrom] = 0;
-                            chartNeedsUpdate = true;
+                            needsUpdate = true;
                         }
                     }
 
@@ -246,22 +297,22 @@
                         } else {
                             whoBalances[whoTo] = amountFloat;
                         }
-                        chartNeedsUpdate = true;
+                        needsUpdate = true;
                     }
 
-                    if (chartNeedsUpdate) drawChart();
+                    if (needsUpdate) renderLeaderboard();
                 });
 
             } catch (error) {
                 console.error("Blockchain Connection Error:", error);
-                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาตรวจสอบว่า MetaMask ของคุณอยู่ในเครือข่าย Token X (TKX) แล้ว");
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาตรวจสอบเครือข่าย Token X ใน MetaMask");
             }
         }
 
         function getIdentity(address) {
             const addrLower = address.toLowerCase();
             if (walletMapping[addrLower] && walletMapping[addrLower].who) {
-                return `${walletMapping[addrLower].who} <br><span class="text-xs text-gray-400">(${walletMapping[addrLower].codeWallet})</span>`;
+                return `${walletMapping[addrLower].who} <br><span class="text-xs text-[#8d6e63]">(${walletMapping[addrLower].codeWallet})</span>`;
             }
             return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
         }
@@ -269,18 +320,18 @@
         function addTransactionToTable(from, to, amountFloat) {
             const tbody = document.getElementById('txTableBody');
             const tr = document.createElement('tr');
-            tr.className = "border-b hover:bg-gray-50 transition-colors bg-green-50 duration-500";
+            tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors bg-[#efebe9]/50 duration-500";
             
             tr.innerHTML = `
                 <td class="p-3">${getIdentity(from)}</td>
                 <td class="p-3">${getIdentity(to)}</td>
-                <td class="p-3 text-right font-semibold text-green-600">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                <td class="p-3 text-right font-semibold text-emerald-700">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
             `;
 
             tbody.insertBefore(tr, tbody.firstChild);
 
             setTimeout(() => {
-                tr.classList.remove('bg-green-50');
+                tr.classList.remove('bg-[#efebe9]/50');
             }, 1500);
         }
 
