@@ -95,7 +95,7 @@
 
         <!-- Real-time Transactions Container -->
         <div class="school-card p-6 rounded-xl shadow-md">
-            <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">📜 Live Transfers (Real-time & Past 40 Txs)</h2>
+            <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">📜 Live Transfers (Real-time & Past 10 Txs)</h2>
             <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header">
@@ -136,7 +136,7 @@
 
         let walletMapping = {};
         let whoBalances = {}; 
-        let hideSystemWallets = false; // ค่าเริ่มต้นคือแสดง System Wallet ปกติ
+        let hideSystemWallets = false; 
 
         function switchToken(tokenKey) {
             const btnBnk = document.getElementById('tab-BNK');
@@ -193,7 +193,6 @@
             location.reload();
         }
 
-        // ฟังก์ชันสลับซ่อน/แสดง System Wallet
         function toggleSystemWallets() {
             hideSystemWallets = !hideSystemWallets;
             const btn = document.getElementById('toggleSystemBtn');
@@ -259,7 +258,6 @@
             const tbody = document.getElementById('leaderboardBody');
             tbody.innerHTML = '';
 
-            // กรอง System Wallet ออกถ้าผู้ใช้กดปุ่มซ่อน
             let sortedHolders = Object.values(whoBalances);
             if (hideSystemWallets) {
                 sortedHolders = sortedHolders.filter(holder => {
@@ -316,12 +314,11 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // โหลดประวัติธุรกรรมย้อนหลัง 40 รายการ
+                // ดึงประวัติธุรกรรมย้อนหลัง 10 รายการล่าสุด
                 await loadPastTransactions(contract, provider);
 
                 await fetchBalancesAndLeaderboard(contract);
 
-                // ดักจับ Event แบบ Real-time
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
                     addTransactionToTable(from, to, amountFloat, false);
@@ -350,27 +347,26 @@
             }
         }
 
-        // ฟังก์ชันดึงธุรกรรมย้อนหลัง 40 รายการ
         async function loadPastTransactions(contract, provider) {
             const tbody = document.getElementById('txTableBody');
-            tbody.innerHTML = '';
+            tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">กำลังดึงประวัติธุรกรรม 10 รายการล่าสุด...</td></tr>`;
 
             try {
                 const currentBlock = await provider.getBlockNumber();
-                // ดึงย้อนหลังไปประมาณ 50,000 บล็อก (ปรับลด/เพิ่มได้ตามความเหมาะสมของเชน Token X)
-                const fromBlock = Math.max(0, currentBlock - 50000); 
+                const fromBlock = Math.max(0, currentBlock - 3000); 
 
                 const filter = contract.filters.Transfer();
                 const logs = await contract.queryFilter(filter, fromBlock, currentBlock);
 
-                // เรียงลำดับจากบล็อกใหม่ล่าสุดไปเก่าสุด และเอามาแค่ 40 รายการ
                 logs.reverse();
-                const recentLogs = logs.slice(0, 40);
+                const recentLogs = logs.slice(0, 10);
 
                 if (recentLogs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่พบประวัติธุรกรรมย้อนหลัง</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่พบประวัติธุรกรรมในช่วงนี้ (รอรับ Real-time)</td></tr>`;
                     return;
                 }
+
+                tbody.innerHTML = '';
 
                 recentLogs.forEach(log => {
                     const { from, to, value } = log.args;
@@ -379,7 +375,7 @@
                 });
             } catch (err) {
                 console.error("Error loading past transactions:", err);
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่สามารถดึงประวัติธุรกรรมย้อนหลังได้ (รองรับเฉพาะ Real-time)</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">พร้อมสตรีมธุรกรรมแบบ Real-time แล้วครับ</td></tr>`;
             }
         }
 
@@ -397,7 +393,6 @@
         function addTransactionToTable(from, to, amountFloat, isPast = false) {
             const tbody = document.getElementById('txTableBody');
             
-            // ถ้าเป็นการดึงโหลดครั้งแรก และข้อความข้างในยังบอกว่ากำลังโหลด ให้ลบออกก่อน
             if (isPast && tbody.innerHTML.includes("กำลังดึงประวัติ")) {
                 tbody.innerHTML = '';
             }
@@ -415,9 +410,9 @@
             `;
 
             if (isPast) {
-                tbody.appendChild(tr); // ถ้าเป็นอดีต ต่อท้ายลงไป
+                tbody.appendChild(tr); 
             } else {
-                tbody.insertBefore(tr, tbody.firstChild); // ถ้าเป็น Real-time ใหม่ล่าสุด ดันขึ้นบนสุด
+                tbody.insertBefore(tr, tbody.firstChild); 
                 setTimeout(() => tr.classList.remove('bg-[#efebe9]/50'), 1500);
             }
         }
