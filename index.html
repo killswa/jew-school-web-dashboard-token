@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BNK Governance Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <!-- เพิ่มไลบรารี Chart.js สำหรับสร้างกราฟ -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 p-4 md:p-8 font-sans">
+
+    <div class="max-w-7xl mx-auto space-y-6">
+        <!-- Header -->
+        <div class="bg-white p-6 rounded-lg shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-800" id="tokenName">BNK Governance Token</h1>
+                <p class="text-gray-500" id="tokenSymbol">Loading...</p>
+            </div>
+            <div class="text-center md:text-right">
+                <p class="text-sm text-gray-500">Total Supply</p>
+                <p class="text-2xl font-bold text-blue-600" id="totalSupply">0 BNK</p>
+            </div>
+        </div>
+
+        <!-- แบ่ง Layout เป็น 2 คอลัมน์: ซ้าย(กราฟ) ขวา(ตารางโอน) -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Pie Chart Container -->
+            <div class="bg-white p-6 rounded-lg shadow-md col-span-1 flex flex-col">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Token Distribution (By Who)</h2>
+                <div class="flex-grow flex items-center justify-center relative min-h-[300px]">
+                    <!-- Canvas สำหรับวาดกราฟ -->
+                    <canvas id="holdersChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Real-time Transactions Container -->
+            <div class="bg-white p-6 rounded-lg shadow-md col-span-1 lg:col-span-2">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Live Transfers (Real-time)</h2>
+                <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-white">
+                            <tr class="bg-gray-50 text-gray-600 text-sm border-b">
+                                <th class="p-3">From (Who)</th>
+                                <th class="p-3">To (Who)</th>
+                                <th class="p-3 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="txTableBody">
+                            <!-- ข้อมูลจะถูกเพิ่มที่นี่อัตโนมัติ -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. ตั้งค่าตัวแปรของคุณที่นี่
+        // ==========================================
+        const GOOGLE_SHEET_CSV_URL = "ใส่_URL_CSV_ที่ได้จากขั้นตอนที่_1_ที่นี่";
+        const CONTRACT_ADDRESS = "ใส่_Contract_Address_ของ_BNK_ที่นี่";
+        const RPC_URL = "ใส่_RPC_URL_ของเครือข่ายที่นี่"; 
+
+        // เพิ่มฟังก์ชัน balanceOf() เข้ามาใน ABI
+        const ABI = [
+            "function name() view returns (string)",
+            "function symbol() view returns (string)",
+            "function totalSupply() view returns (uint256)",
+            "function balanceOf(address account) view returns (uint256)",
+            "event Transfer(address indexed from, address indexed to, uint256 value)"
+        ];
+
+        let walletMapping = {};
+        let whoBalances = {}; // เก็บยอดรวมของแต่ละ "Who"
+        let pieChartInstance = null; // ตัวแปรกราฟ
+
+        // ==========================================
+        // 2. ดึงข้อมูลจาก Google Sheets
+        // ==========================================
+        function loadGoogleSheetData() {
+            Papa.parse(GOOGLE_SHEET_CSV_URL, {
+                download: true,
+                header: true,
+                complete: function(results) {
+                    results.data.forEach(row => {
+                        if(row.Address && row.Who) {
+                            walletMapping[row.Address.toLowerCase()] = {
+                                who: row.Who,
+                                codeWallet: row.CodeWallet,
+                                walletName: row.Wallet
+                            };
+                        }
+                    });
+                    initBlockchain();
+                },
+                error: function(err) {
+                    console.error("Error loading CSV:", err);
+                    alert("ไม่สามารถดึงข้อมูลจาก Google Sheets ได้ โปรดตรวจสอบ URL");
+                }
+            });
+        }
+
+        // ==========================================
+        // 3. ฟังก์ชันดึง Balance ของทุกคนที่อยู่ใน Sheet
+        // ==========================================
+        async function fetchBalancesAndDrawChart(contract) {
+            whoBalances = {};
+            const uniqueAddresses = Object.keys(walletMapping);
+            
+            // วนลูปเช็ค Balance ทีละ Address
+            for(let addr of uniqueAddresses) {
+                try {
+                    const bal = await contract.balanceOf(addr);
+                    const balFloat = parseFloat(ethers.utils.formatUnits(bal, 18));
+                    const who = walletMapping[addr].who;
+                    
+                    // นำยอดมารวมกันตามชื่อ Who
+                    if(whoBalances[who]) {
+                        whoBalances[who] += balFloat;
+                    } else {
+                        whoBalances[who] = balFloat;
+                    }
+                } catch(e) {
+                    console.error("Error fetching balance for", addr, e);
+                }
+            }
+            
+            // ลบคนที่ยอดเป็น 0 ออกจากกราฟ
+            Object.keys(whoBalances).forEach(key => {
+                if(whoBalances[key] === 0) delete whoBalances[key];
+            });
+
+            drawChart();
+        }
+
+        // ==========================================
+        // 4. ฟังก์ชันวาดกราฟ (Chart.js)
+        // ==========================================
+        function drawChart() {
+            const ctx = document.getElementById('holdersChart').getContext('2d');
+            const labels = Object.keys(whoBalances);
+            const data = Object.values(whoBalances);
+            
+            // กำหนดชุดสีสำหรับกราฟ
+            const colors = [
+                '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', 
+                '#EC4899', '#06B6D4', '#F97316', '#64748B', '#84CC16'
+            ];
+
+            // ถ้ามีกราฟอยู่แล้ว ให้อัปเดตข้อมูล (Real-time update)
+            if(pieChartInstance) {
+                pieChartInstance.data.labels = labels;
+                pieChartInstance.data.datasets[0].data = data;
+                pieChartInstance.update();
+            } else {
+                // สร้างกราฟใหม่
+                pieChartInstance = new Chart(ctx, {
+                    type: 'doughnut', // ใช้ Doughnut chart จะดูสวยและทันสมัย
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) { label += ': '; }
+                                        // ใส่ลูกน้ำ(,) และจำกัดทศนิยม
+                                        label += context.parsed.toLocaleString(undefined, {maximumFractionDigits: 2}) + ' BNK';
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // ==========================================
+        // 5. เชื่อมต่อ Blockchain และฟังค์ชันหลัก
+        // ==========================================
+        async function initBlockchain() {
+            try {
+                const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+                const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+
+                // ดึงข้อมูลพื้นฐานของ Token
+                const [name, symbol, supply] = await Promise.all([
+                    contract.name(),
+                    contract.symbol(),
+                    contract.totalSupply()
+                ]);
+
+                document.getElementById('tokenName').innerText = name;
+                document.getElementById('tokenSymbol').innerText = symbol;
+                
+                const formattedSupply = ethers.utils.formatUnits(supply, 18);
+                document.getElementById('totalSupply').innerText = parseFloat(formattedSupply).toLocaleString() + " " + symbol;
+
+                // โหลด Balance ตอนเริ่มต้น และวาดกราฟ
+                await fetchBalancesAndDrawChart(contract);
+
+                // ดักจับ Event 'Transfer' แบบ Real-time
+                contract.on("Transfer", (from, to, value, event) => {
+                    const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
+                    
+                    // 1. อัปเดตตารางโอน
+                    addTransactionToTable(from, to, amountFloat);
+
+                    // 2. อัปเดตยอดในกราฟแบบ Local ทันทีโดยไม่ต้องดึงข้อมูลใหม่
+                    let chartNeedsUpdate = false;
+                    const fromLower = from.toLowerCase();
+                    const toLower = to.toLowerCase();
+
+                    // หักเงินคนโอน
+                    if (walletMapping[fromLower]) {
+                        const whoFrom = walletMapping[fromLower].who;
+                        if (whoBalances[whoFrom] !== undefined) {
+                            whoBalances[whoFrom] -= amountFloat;
+                            if (whoBalances[whoFrom] < 0) whoBalances[whoFrom] = 0;
+                            chartNeedsUpdate = true;
+                        }
+                    }
+
+                    // เพิ่มเงินคนรับ
+                    if (walletMapping[toLower]) {
+                        const whoTo = walletMapping[toLower].who;
+                        if (whoBalances[whoTo] !== undefined) {
+                            whoBalances[whoTo] += amountFloat;
+                        } else {
+                            whoBalances[whoTo] = amountFloat;
+                        }
+                        chartNeedsUpdate = true;
+                    }
+
+                    // ถ้าคนที่รับ/โอนอยู่ในระบบ Who ของเรา ให้อัปเดตกราฟ
+                    if (chartNeedsUpdate) drawChart();
+                });
+
+            } catch (error) {
+                console.error("Blockchain Connection Error:", error);
+            }
+        }
+
+        function getIdentity(address) {
+            const addrLower = address.toLowerCase();
+            if (walletMapping[addrLower] && walletMapping[addrLower].who) {
+                return `${walletMapping[addrLower].who} <br><span class="text-xs text-gray-400">(${walletMapping[addrLower].codeWallet})</span>`;
+            }
+            return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+        }
+
+        function addTransactionToTable(from, to, amountFloat) {
+            const tbody = document.getElementById('txTableBody');
+            const tr = document.createElement('tr');
+            tr.className = "border-b hover:bg-gray-50 transition-colors bg-green-50 duration-500";
+            
+            tr.innerHTML = `
+                <td class="p-3">${getIdentity(from)}</td>
+                <td class="p-3">${getIdentity(to)}</td>
+                <td class="p-3 text-right font-semibold text-green-600">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+            `;
+
+            tbody.insertBefore(tr, tbody.firstChild);
+
+            // เอาสีพื้นหลัง(ไฟกระพริบ)ออกเมื่อผ่านไป 1.5 วินาที
+            setTimeout(() => {
+                tr.classList.remove('bg-green-50');
+            }, 1500);
+        }
+
+        // เริ่มต้นการทำงาน
+        loadGoogleSheetData();
+    </script>
+</body>
+</html>
