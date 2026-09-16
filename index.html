@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BNK Governance Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- ใช้ Ethers.js จาก cdnjs ที่เสถียรกว่า -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -59,7 +60,7 @@
     <script>
         const GOOGLE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuX8P2ftAdB_U1rv9j2eWozaD-1F216lIpVOjCIIf4JbffXzt-aa_JVZmttXNPM1DwBSMssUF0-CRM/pub?output=csv";
         const CONTRACT_ADDRESS = "0xA992ad80Fa6136702382123Ae717890Bc587491d";
-        const RPC_URL = "https://rpc.tokenx.finance";
+        // ไม่ต้องใช้ RPC_URL แล้ว เพราะเราจะดึงจาก MetaMask แทน
 
         const ABI = [
             "function name() view returns (string)",
@@ -100,7 +101,6 @@
             whoBalances = {};
             const uniqueAddresses = Object.keys(walletMapping);
             
-            // ใช้ Promise.all เพื่อดึง Balance ทุกคนพร้อมกัน (เร็วขึ้น)
             const balancePromises = uniqueAddresses.map(async (addr) => {
                 try {
                     const bal = await contract.balanceOf(addr);
@@ -124,7 +124,6 @@
                 }
             });
             
-            // ลบคนที่ยอดเป็น 0 ออกจากกราฟ
             Object.keys(whoBalances).forEach(key => {
                 if(whoBalances[key] === 0) delete whoBalances[key];
             });
@@ -180,10 +179,22 @@
         }
 
         async function initBlockchain() {
+            // 1. เช็คว่ามี MetaMask หรือ Web3 Wallet ติดตั้งอยู่หรือไม่
+            if (typeof window.ethereum === 'undefined') {
+                alert("ไม่พบ MetaMask! กรุณาติดตั้ง MetaMask เพื่อดูข้อมูล Dashboard");
+                document.getElementById('tokenSymbol').innerText = "MetaMask not found";
+                return;
+            }
+
             try {
-                const provider = new ethers.providers.JsonRpcProvider(RPC_URL);
+                // 2. ขอสิทธิ์เชื่อมต่อกับ MetaMask ของผู้ใช้
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+
+                // 3. ใช้ MetaMask เป็น Provider (แทน JsonRpcProvider เดิม)
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
 
+                // ดึงข้อมูลพื้นฐานของ Token
                 const [name, symbol, supply] = await Promise.all([
                     contract.name(),
                     contract.symbol(),
@@ -196,8 +207,10 @@
                 const formattedSupply = ethers.utils.formatUnits(supply, 18);
                 document.getElementById('totalSupply').innerText = parseFloat(formattedSupply).toLocaleString() + " " + symbol;
 
+                // โหลด Balance ตอนเริ่มต้น และวาดกราฟ
                 await fetchBalancesAndDrawChart(contract);
 
+                // ดักจับ Event 'Transfer' แบบ Real-time
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
                     
@@ -231,6 +244,7 @@
 
             } catch (error) {
                 console.error("Blockchain Connection Error:", error);
+                alert("เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาตรวจสอบว่า MetaMask ของคุณอยู่ในเครือข่าย Token X แล้ว");
             }
         }
 
