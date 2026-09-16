@@ -80,7 +80,8 @@
                 complete: function(results) {
                     results.data.forEach(row => {
                         if(row.Address && row.Who) {
-                            walletMapping[row.Address.toLowerCase()] = {
+                            // Trim เผื่อมีช่องว่างแฝงมาใน Google Sheet
+                            walletMapping[row.Address.toLowerCase().trim()] = {
                                 who: row.Who,
                                 codeWallet: row.CodeWallet,
                                 walletName: row.Wallet
@@ -99,14 +100,24 @@
         async function fetchBalancesAndDrawChart(contract) {
             whoBalances = {};
             const uniqueAddresses = Object.keys(walletMapping);
+            console.log("Total addresses to check:", uniqueAddresses.length);
             
-            // ดึงข้อมูลทีละ Address และหน่วงเวลา 0.1 วินาที เพื่อไม่ให้โดน Token X บล็อก
             for (let i = 0; i < uniqueAddresses.length; i++) {
-                const addr = uniqueAddresses[i];
+                // ตัดช่องว่างซ้ายขวาออก ป้องกันข้อมูลแฝงจาก CSV
+                const addr = uniqueAddresses[i].trim(); 
+                
+                // เช็คว่ารูปแบบ Wallet Address ถูกต้องหรือไม่ (ต้องขึ้นต้นด้วย 0x และยาว 42 ตัวอักษร)
+                if (!ethers.utils.isAddress(addr)) {
+                    console.warn(`ข้ามข้อมูลที่ไม่ใช่ Wallet: "${addr}"`);
+                    continue; // ข้ามไปดึงข้อมูลคนถัดไปทันที
+                }
+
                 try {
+                    // แสดง Log ให้รู้ว่ากำลังเช็คกระเป๋าใบไหน
+                    console.log(`กำลังดึงข้อมูลของ ${addr} (${i+1}/${uniqueAddresses.length})`);
                     const bal = await contract.balanceOf(addr);
                     const balFloat = parseFloat(ethers.utils.formatUnits(bal, 18));
-                    const who = walletMapping[addr].who;
+                    const who = walletMapping[addr.toLowerCase()].who;
                     
                     if (whoBalances[who]) {
                         whoBalances[who] += balFloat;
@@ -114,11 +125,11 @@
                         whoBalances[who] = balFloat;
                     }
                 } catch(e) {
-                    console.error("Error fetching balance for", addr, e);
+                    console.error("ดึงยอดเงินไม่สำเร็จสำหรับ:", addr, e);
                 }
                 
-                // หน่วงเวลา 100 มิลลิวินาที
-                await new Promise(resolve => setTimeout(resolve, 100));
+                // หน่วงเวลาเพิ่มเป็น 300 มิลลิวินาที ให้เซิร์ฟเวอร์ Token X หายใจ
+                await new Promise(resolve => setTimeout(resolve, 300));
             }
 
             // ลบคนที่ยอดเป็น 0 ออกจากกราฟ
@@ -127,6 +138,7 @@
             });
 
             drawChart();
+            console.log("สร้างกราฟสำเร็จ!");
         }
 
         function drawChart() {
