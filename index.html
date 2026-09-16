@@ -74,7 +74,7 @@
                     </thead>
                     <tbody id="leaderboardBody">
                         <tr>
-                            <td colspan="4" class="p-6 text-center text-[#8d6e63]">กำลังเชื่อมต่อบล็อกเชน...</td>
+                            <td colspan="4" class="p-6 text-center text-[#8d6e63]">กำลังโหลดข้อมูลกระเป๋าจาก GitHub...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -109,8 +109,8 @@
             contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
         };
 
-        // ใช้ GitHub Raw URL โดยตรง เพื่อความเสถียรและป้องกันปัญหา Path บน Netlify
-        const DATA_JSON_URL = "https://raw.githubusercontent.com/killswa/jew-school-web-dashboard-token/main/wallets.json";
+        // ใช้ jsDelivr CDN ดึงไฟล์ JSON จาก GitHub โดยตรง (เร็ว แรง และไม่ติด CORS)
+        const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
 
         const ABI = [
             "function name() view returns (string)",
@@ -158,16 +158,18 @@
                 data.forEach(row => {
                     if(row.Address) {
                         const addr = row.Address.toLowerCase().trim();
+                        // ถ้าไม่มีชื่อ Who ให้แสดงเป็น Address เต็มตามบรีฟ
+                        const displayName = (row.Who && row.Who.trim() !== "") ? row.Who.trim() : row.Address.trim();
                         walletMapping[addr] = {
-                            who: (row.Who && row.Who.trim() !== "") ? row.Who.trim() : row.Address.trim(),
-                            codeWallet: row.CodeWallet ? row.CodeWallet.trim() : "-"
+                            who: displayName,
+                            codeWallet: (row.CodeWallet && row.CodeWallet.toString().trim() !== "") ? row.CodeWallet.toString().trim() : "-"
                         };
                     }
                 });
                 initBlockchain();
             } catch (err) {
                 console.error("Error loading JSON data:", err);
-                alert("ไม่สามารถโหลดไฟล์ข้อมูลกระเป๋าจาก GitHub ได้");
+                alert("ไม่สามารถโหลดไฟล์ wallets.json ผ่าน CDN ได้ กรุณาตรวจสอบการเชื่อมต่อ");
             }
         }
 
@@ -196,7 +198,8 @@
                     console.error("ดึงยอดเงินไม่สำเร็จสำหรับ:", addr, e);
                 }
                 
-                await new Promise(resolve => setTimeout(resolve, 150));
+                // หน่วงเวลาสั้นๆ เพื่อความเสถียร
+                await new Promise(resolve => setTimeout(resolve, 100));
             }
 
             progressEl.innerText = "โหลดข้อมูลครบถ้วนแล้ว ✓";
@@ -225,7 +228,7 @@
 
                 tr.innerHTML = `
                     <td class="p-3 text-center">${rankBadge}</td>
-                    <td class="p-3 font-medium text-[#4a3b32]">${holder.displayName}</td>
+                    <td class="p-3 font-medium text-[#4a3b32] break-all">${holder.displayName}</td>
                     <td class="p-3 text-[#8d6e63] text-sm">${holder.codeWallet}</td>
                     <td class="p-3 text-right font-semibold text-[#5d4037]">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
                 `;
@@ -284,8 +287,11 @@
 
         function getIdentity(address) {
             const addrLower = address.toLowerCase();
-            if (walletMapping[addrLower] && walletMapping[addrLower].who !== address) {
-                return `${walletMapping[addrLower].who} <br><span class="text-xs text-[#8d6e63]">(${walletMapping[addrLower].codeWallet})</span>`;
+            if (walletMapping[addrLower]) {
+                const info = walletMapping[addrLower];
+                if (info.who !== address) {
+                    return `${info.who} <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
+                }
             }
             return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
         }
