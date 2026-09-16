@@ -109,8 +109,8 @@
             contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
         };
 
-        // เปลี่ยนมาดึงไฟล์ JSON จาก GitHub แทน (หรือใช้ URL ของ Google Sheet เดิมก็ได้ถ้ายังสะดวกแก้ใน Sheet)
-        const DATA_JSON_URL = "wallets.json"; 
+        // ใช้ GitHub Raw URL โดยตรง เพื่อความเสถียรและป้องกันปัญหา Path บน Netlify
+        const DATA_JSON_URL = "https://raw.githubusercontent.com/killswa/jew-school-web-dashboard-token/main/wallets.json";
 
         const ABI = [
             "function name() view returns (string)",
@@ -167,7 +167,7 @@
                 initBlockchain();
             } catch (err) {
                 console.error("Error loading JSON data:", err);
-                alert("ไม่สามารถโหลดไฟล์ข้อมูลกระเป๋าได้ กรุณาตรวจสอบไฟล์ wallets.json บน GitHub");
+                alert("ไม่สามารถโหลดไฟล์ข้อมูลกระเป๋าจาก GitHub ได้");
             }
         }
 
@@ -196,7 +196,6 @@
                     console.error("ดึงยอดเงินไม่สำเร็จสำหรับ:", addr, e);
                 }
                 
-                // หน่วงเวลาสั้นลงเหลือ 150ms เพื่อให้โหลดไวขึ้น
                 await new Promise(resolve => setTimeout(resolve, 150));
             }
 
