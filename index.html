@@ -37,6 +37,12 @@
         ::-webkit-scrollbar-track { background: #efebe9; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #a1887f; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #795548; }
+        
+        /* Animation สำหรับ Popup */
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes scaleUp { from { transform: scale(0.95); } to { transform: scale(1); } }
+        .modal-bg { animation: fadeIn 0.2s ease-out; }
+        .modal-content { animation: scaleUp 0.2s ease-out; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -72,7 +78,7 @@
                         👁️ ซ่อน System Wallet
                     </button>
                     <button onclick="clearCacheAndReload()" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
-                        🔄 รีเฟรชข้อมูลใหม่ทั้งหมด
+                        🔄 รีเฟรชข้อมูล
                     </button>
                     <span id="loadingProgress" class="text-sm text-[#8d6e63] font-bold bg-white px-2 py-1 rounded">กำลังเตรียมโหลด...</span>
                 </div>
@@ -97,9 +103,18 @@
             </div>
         </div>
 
+        <!-- หน้าต่าง Live Transfers ที่เพิ่มปุ่มเปิดหอสังเกตการณ์ -->
         <div class="school-card p-6 rounded-xl">
-            <h2 class="text-2xl font-bold text-[#3e2723] mb-4 border-b pb-3 border-[#d7ccc8]">📜 ประวัติการโอน (Live & Past Transfers)</h2>
-            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
+                <h2 class="text-2xl font-bold text-[#3e2723]">📜 ประวัติการโอน (Live Transfers)</h2>
+                
+                <!-- ปุ่มเปิด Popup หอสังเกตการณ์ -->
+                <button onclick="openExplorerPopup()" class="bg-[#3e2723] hover:bg-[#271815] text-white px-5 py-2.5 rounded-lg border-2 border-[#5d4037] font-bold shadow-md transition-all flex items-center gap-2 hover:scale-105">
+                    🔭 เปิดหอสังเกตการณ์ (Explorer เต็มรูปแบบ)
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto max-h-[300px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
@@ -110,7 +125,7 @@
                     </thead>
                     <tbody id="txTableBody">
                         <tr>
-                            <td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold animate-pulse">กำลังซิงค์ข้อมูลกับบล็อกเชน...</td>
+                            <td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold">รอแสดงผลรายการโอนใหม่ (สตรีม Real-time ทันทีที่มีคนโอน)...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -119,15 +134,41 @@
 
     </div>
 
+    <!-- โครงสร้าง Popup หอสังเกตการณ์ (Modal) -->
+    <div id="explorerModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 md:p-6 modal-bg">
+        <div class="bg-[#fcf8f2] w-full max-w-6xl h-full max-h-[95vh] rounded-xl shadow-2xl flex flex-col border-4 border-[#d7ccc8] modal-content">
+            
+            <!-- Header ของ Popup -->
+            <div class="flex flex-wrap justify-between items-center p-3 md:p-4 border-b-2 border-[#d7ccc8] bg-[#efebe9] rounded-t-lg gap-2">
+                <h2 class="text-lg md:text-xl font-black text-[#3e2723]">🔭 หอสังเกตการณ์ (Token X Explorer)</h2>
+                <div class="flex gap-2">
+                    <button onclick="openNewTab()" class="px-3 py-2 bg-white text-[#5d4037] rounded-md text-sm font-bold border border-[#d7ccc8] hover:bg-gray-50 shadow-sm">
+                        ↗️ เปิดแท็บใหม่
+                    </button>
+                    <button onclick="closeExplorerPopup()" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-bold border border-red-800 hover:bg-red-700 shadow-sm">
+                        ❌ ปิดหน้าต่าง
+                    </button>
+                </div>
+            </div>
+            
+            <!-- ส่วนแสดงผล Iframe -->
+            <div class="flex-1 w-full p-1 bg-white rounded-b-lg">
+                <!-- ใส่ URL ของ Token X ที่หน้า tab=token_transfers -->
+                <iframe id="explorerIframe" src="" class="w-full h-full rounded border-0" title="Token X Explorer"></iframe>
+            </div>
+        </div>
+    </div>
+
     <script>
         let currentTokenConfig = {
             name: "BNK Governance Token",
             symbol: "BNK",
             contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
         };
-
+        const EXPLORER_URL = `https://scan.tokenx.finance/token/${currentTokenConfig.contractAddress}?tab=token_transfers`;
+        
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_final"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_final_v2"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -140,6 +181,25 @@
         let walletMapping = {};
         let whoBalances = {}; 
         let hideSystemWallets = false; 
+
+        // ระบบควบคุม Popup หอสังเกตการณ์
+        function openExplorerPopup() {
+            const modal = document.getElementById('explorerModal');
+            const iframe = document.getElementById('explorerIframe');
+            // โหลด iframe เฉพาะตอนกดเปิด เพื่อประหยัดเน็ต
+            if(iframe.src === "" || iframe.src === window.location.href) {
+                iframe.src = EXPLORER_URL;
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeExplorerPopup() {
+            document.getElementById('explorerModal').classList.add('hidden');
+        }
+
+        function openNewTab() {
+            window.open(EXPLORER_URL, '_blank');
+        }
 
         function switchToken(tokenKey) {
             if(tokenKey === 'BNK') {
@@ -167,14 +227,13 @@
                 });
                 initBlockchain();
             } catch (err) {
-                console.error("Error loading JSON data:", err);
-                alert("ไม่สามารถโหลดไฟล์ wallets.json ผ่าน CDN ได้");
+                console.error("Error loading JSON:", err);
             }
         }
 
         function clearCacheAndReload() {
             localStorage.removeItem(CACHE_KEY);
-            alert("ล้าง Cache เรียบร้อยแล้ว กำลังโหลดข้อมูลใหม่จากบล็อกเชน...");
+            alert("ล้าง Cache เรียบร้อยแล้ว กำลังโหลดข้อมูลใหม่...");
             location.reload();
         }
 
@@ -200,7 +259,7 @@
                 try {
                     whoBalances = JSON.parse(cachedData);
                     renderLeaderboard();
-                    progressEl.innerText = "โหลดจาก Cache สำเร็จ (กำลังอัปเดตเบื้องหลัง...)";
+                    progressEl.innerText = "โหลดจาก Cache สำเร็จ";
                 } catch(e) {}
             }
 
@@ -229,7 +288,7 @@
                     renderLeaderboard();
                 }
             }
-            progressEl.innerText = "อัปเดตข้อมูลล่าสุดครบถ้วนแล้ว ✓";
+            progressEl.innerText = "อัปเดตครบถ้วน ✓";
         }
 
         function renderLeaderboard() {
@@ -238,16 +297,12 @@
 
             let sortedHolders = Object.values(whoBalances);
             if (hideSystemWallets) {
-                sortedHolders = sortedHolders.filter(holder => {
-                    const name = holder.displayName.toLowerCase();
-                    return !name.includes("system wallet");
-                });
+                sortedHolders = sortedHolders.filter(holder => !holder.displayName.toLowerCase().includes("system wallet"));
             }
-
             sortedHolders.sort((a, b) => b.balance - a.balance);
 
             if (sortedHolders.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-[#8d6e63]">ไม่พบข้อมูลยอดถือครอง</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-[#8d6e63]">ไม่พบข้อมูล</td></tr>`;
                 return;
             }
 
@@ -272,7 +327,7 @@
 
         async function initBlockchain() {
             if (typeof window.ethereum === 'undefined') {
-                alert("ไม่พบ MetaMask! กรุณาติดตั้ง MetaMask");
+                alert("กรุณาติดตั้ง MetaMask");
                 return;
             }
 
@@ -292,12 +347,9 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // ดึงประวัติแบบเงียบๆ ไม่โวยวายตอน Error
-                await loadSafeTransactions(contract, provider);
-
                 await fetchBalancesAndLeaderboard(contract);
 
-                // สตรีมจับตาการโอนสดๆ ตลอดเวลาที่เปิดเว็บ
+                // สตรีมรายการโอนสดๆ (เฉพาะเหตุการณ์ใหม่ที่เกิดขึ้นหลังเปิดเว็บ)
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
                     addTransactionToTable(from, to, amountFloat, false);
@@ -322,36 +374,7 @@
                 });
 
             } catch (error) {
-                console.error("Blockchain Connection Error:", error);
-            }
-        }
-
-        // ระบบดึงข้อมูลแบบปลอดภัย 100% ไม่แคร์ Proxy และดัก Error เงียบหมด
-        async function loadSafeTransactions(contract, provider) {
-            const tbody = document.getElementById('txTableBody');
-            
-            try {
-                const currentBlock = await provider.getBlockNumber();
-                // ย้อนหลังแค่ 500 บล็อก เพื่อความชัวร์ว่าจะไม่โดนเตะ
-                const fromBlock = Math.max(0, currentBlock - 500); 
-                const filter = contract.filters.Transfer();
-                
-                const logs = await contract.queryFilter(filter, fromBlock, currentBlock);
-
-                if (logs.length > 0) {
-                    tbody.innerHTML = '';
-                    logs.reverse().slice(0, 20).forEach(log => {
-                        const { from, to, value } = log.args;
-                        const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                        addTransactionToTable(from, to, amountFloat, true);
-                    });
-                } else {
-                    // ถ้าช่วงเวลาสั้นๆ นั้นไม่มีใครโอนเลย จะแสดงข้อความนี้
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold">รอจับตาดูการโอนเหรียญ (Real-time) ทันทีที่มีการเคลื่อนไหว...</td></tr>`;
-                }
-            } catch (error) {
-                // ถ้า Token X ปฏิเสธอีก จะไม่พ่น Error ลง Console ให้กวนใจ และเข้าโหมดรอแบบเนียนๆ
-                tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold">หอสังเกตการณ์พร้อมแล้ว! รอจับรายการโอนแบบ Real-time ทันทีที่มีคนโอน...</td></tr>`;
+                console.error("Blockchain Error:", error);
             }
         }
 
@@ -369,17 +392,10 @@
         function addTransactionToTable(from, to, amountFloat, isPast = false) {
             const tbody = document.getElementById('txTableBody');
             
-            if (isPast && tbody.innerHTML.includes("รอจับตาดู")) {
-                tbody.innerHTML = '';
-            }
+            if (tbody.innerHTML.includes("รอแสดงผล")) tbody.innerHTML = '';
 
             const tr = document.createElement('tr');
-            tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
-            if (!isPast) {
-                // ถ้ามีรายการโอนเข้ามาสดๆ ตอนกำลังเปิดเว็บ จะเด้งกระพริบสีเตือน!
-                tr.classList.add("bg-[#e6d7c3]"); 
-                tr.classList.add("animate-pulse"); 
-            }
+            tr.className = "border-b border-[#efebe9] transition-colors bg-[#e6d7c3] animate-pulse";
             
             tr.innerHTML = `
                 <td class="p-4">${getIdentity(from)}</td>
@@ -387,18 +403,8 @@
                 <td class="p-4 text-right font-black text-emerald-700">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
             `;
 
-            if (isPast) {
-                tbody.appendChild(tr); 
-            } else {
-                // ถ้ารายการมาใหม่ ดันขึ้นบรรทัดแรกสุด พร้อมแจ้ง Alert ให้สะดุดตา
-                if(tbody.firstChild && tbody.firstChild.innerHTML && tbody.firstChild.innerHTML.includes("หอสังเกตการณ์")) {
-                    tbody.innerHTML = '';
-                }
-                tbody.insertBefore(tr, tbody.firstChild); 
-                setTimeout(() => {
-                    tr.classList.remove('bg-[#e6d7c3]', 'animate-pulse');
-                }, 3000);
-            }
+            tbody.insertBefore(tr, tbody.firstChild); 
+            setTimeout(() => tr.classList.remove('bg-[#e6d7c3]', 'animate-pulse'), 3000);
         }
 
         loadWalletData();
