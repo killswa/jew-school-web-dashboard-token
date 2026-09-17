@@ -7,27 +7,38 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
+        /* ธีมพื้นหลังไม้สีน้ำตาล-กระดาษครีม สไตล์โรงเรียน */
         body {
-            background-color: #fcf8f2;
-            color: #4a3b32;
+            background-color: #4a3b32; /* สีน้ำตาลเข้ม */
+            background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png"); /* ลายไม้จางๆ */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .school-card {
-            background-color: #fffdf9;
-            border: 2px solid #e6d7c3;
+            background-color: #fcf8f2; /* สีกระดาษสมุดครีม */
+            border: 3px solid #d7ccc8;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
+            color: #4a3b32;
         }
         .school-btn {
-            background-color: #8d6e63;
+            background-color: #795548;
             color: #ffffff;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
+            border: 2px solid #5d4037;
         }
         .school-btn:hover {
-            background-color: #6d4c41;
+            background-color: #5d4037;
+            transform: translateY(1px);
         }
         .school-table-header {
             background-color: #efebe9;
             color: #5d4037;
+            border-bottom: 2px solid #d7ccc8;
         }
+        /* Custom Scrollbar ให้เข้าธีม */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #efebe9; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #a1887f; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #795548; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -35,58 +46,59 @@
     <div class="max-w-7xl mx-auto space-y-6">
         
         <!-- Tab สำหรับรองรับ Token แบบใหม่ในอนาคต -->
-        <div class="flex gap-2 border-b border-[#d7ccc8] pb-2">
-            <button onclick="switchToken('BNK')" id="tab-BNK" class="px-4 py-2 rounded-lg font-bold school-btn shadow-sm">
+        <div class="flex gap-2 pb-2">
+            <button onclick="switchToken('BNK')" id="tab-BNK" class="px-5 py-2 rounded-lg font-bold school-btn shadow-sm">
                 BNK Governance Token
             </button>
-            <button onclick="switchToken('NEW')" id="tab-NEW" class="px-4 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] hover:bg-[#c5b9b6] transition-colors">
+            <button onclick="switchToken('NEW')" id="tab-NEW" class="px-5 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] border-2 border-[#bcaaa4] hover:bg-[#bcaaa4] transition-all">
                 New Token (Coming Soon)
             </button>
         </div>
 
         <!-- Header -->
-        <div class="school-card p-6 rounded-xl shadow-md flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="school-card p-6 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-                <h1 class="text-3xl font-bold" id="tokenName">BNK Governance Token</h1>
-                <p class="text-[#8d6e63]" id="tokenSymbol">Loading...</p>
+                <h1 class="text-3xl font-extrabold text-[#3e2723]" id="tokenName">BNK Governance Token</h1>
+                <p class="text-[#8d6e63] font-medium mt-1" id="tokenSymbol">Loading...</p>
             </div>
-            <div class="text-center md:text-right">
-                <p class="text-sm text-[#8d6e63]">Total Supply</p>
-                <p class="text-2xl font-bold text-[#5d4037]" id="totalSupply">0 BNK</p>
+            <div class="text-center md:text-right bg-[#efebe9] px-6 py-3 rounded-lg border border-[#d7ccc8]">
+                <p class="text-sm text-[#8d6e63] font-bold">Total Supply</p>
+                <p class="text-2xl font-black text-[#5d4037]" id="totalSupply">0 BNK</p>
             </div>
         </div>
 
         <!-- Leaderboard Container -->
-        <div class="school-card p-6 rounded-xl shadow-md">
+        <div class="school-card p-6 rounded-xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
-                <h2 class="text-xl font-bold">🏆 จัดอันดับผู้ถือเหรียญสูงสุดทั้งหมด (Leaderboard)</h2>
+                <h2 class="text-2xl font-bold text-[#3e2723]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด (Leaderboard)</h2>
                 
                 <div class="flex flex-wrap items-center gap-3">
                     <!-- ปุ่มเปิด/ปิดซ่อน System Wallet -->
-                    <button onclick="toggleSystemWallets()" id="toggleSystemBtn" class="text-xs bg-[#efebe9] hover:bg-[#e6d7c3] text-[#5d4037] px-3 py-2 rounded-md border border-[#d7ccc8] font-medium transition-colors">
+                    <button onclick="toggleSystemWallets()" id="toggleSystemBtn" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
                         👁️ ซ่อน System Wallet
                     </button>
                     <!-- ปุ่มรีเฟรช Cache -->
-                    <button onclick="clearCacheAndReload()" class="text-xs bg-[#efebe9] hover:bg-[#e6d7c3] text-[#5d4037] px-3 py-2 rounded-md border border-[#d7ccc8] transition-colors">
+                    <button onclick="clearCacheAndReload()" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
                         🔄 รีเฟรชข้อมูลใหม่ทั้งหมด
                     </button>
-                    <span id="loadingProgress" class="text-sm text-[#8d6e63] font-medium">กำลังเตรียมโหลด...</span>
+                    <span id="loadingProgress" class="text-sm text-[#8d6e63] font-bold bg-white px-2 py-1 rounded">กำลังเตรียมโหลด...</span>
                 </div>
             </div>
 
-            <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
+            <!-- ขยายความสูงตารางให้ดูได้เยอะขึ้น (max-h-[800px] หรือ 75vh) -->
+            <div class="overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
                 <table class="w-full text-left border-collapse">
-                    <thead class="sticky top-0 school-table-header">
-                        <tr class="border-b border-[#d7ccc8]">
-                            <th class="p-3 text-center w-20">อันดับ</th>
-                            <th class="p-3">ชื่อ / Address (Who)</th>
-                            <th class="p-3">รหัสกระเป๋า (CodeWallet)</th>
-                            <th class="p-3 text-right">จำนวนเหรียญ (BNK)</th>
+                    <thead class="sticky top-0 school-table-header shadow-sm z-10">
+                        <tr>
+                            <th class="p-4 text-center w-24 font-bold">อันดับ</th>
+                            <th class="p-4 font-bold">ชื่อ / Address (Who)</th>
+                            <th class="p-4 font-bold">รหัสกระเป๋า (CodeWallet)</th>
+                            <th class="p-4 text-right font-bold">จำนวนเหรียญ (BNK)</th>
                         </tr>
                     </thead>
                     <tbody id="leaderboardBody">
                         <tr>
-                            <td colspan="4" class="p-6 text-center text-[#8d6e63]">กำลังโหลดข้อมูลกระเป๋า...</td>
+                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-bold text-lg animate-pulse">กำลังโหลดข้อมูลกระเป๋า...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -94,20 +106,20 @@
         </div>
 
         <!-- Real-time Transactions Container -->
-        <div class="school-card p-6 rounded-xl shadow-md">
-            <h2 class="text-xl font-bold mb-4 border-b pb-2 border-[#d7ccc8]">📜 Live Transfers (Real-time & Past 10 Txs)</h2>
-            <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+        <div class="school-card p-6 rounded-xl">
+            <h2 class="text-2xl font-bold text-[#3e2723] mb-4 border-b pb-3 border-[#d7ccc8]">📜 ประวัติการโอน (Live & Past Transfers)</h2>
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
                 <table class="w-full text-left border-collapse">
-                    <thead class="sticky top-0 school-table-header">
-                        <tr class="border-b border-[#d7ccc8]">
-                            <th class="p-3">From (Who)</th>
-                            <th class="p-3">To (Who)</th>
-                            <th class="p-3 text-right">Amount</th>
+                    <thead class="sticky top-0 school-table-header shadow-sm z-10">
+                        <tr>
+                            <th class="p-4 font-bold">จาก (From)</th>
+                            <th class="p-4 font-bold">ถึง (To)</th>
+                            <th class="p-4 text-right font-bold">จำนวน (Amount)</th>
                         </tr>
                     </thead>
                     <tbody id="txTableBody">
                         <tr>
-                            <td colspan="3" class="p-4 text-center text-[#8d6e63]">กำลังดึงประวัติธุรกรรมย้อนหลัง...</td>
+                            <td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold animate-pulse">กำลังดึงประวัติธุรกรรมจาก Explorer...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -124,7 +136,7 @@
         };
 
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_v2";
+        const CACHE_KEY = "bnk_leaderboard_cache_v3";
 
         const ABI = [
             "function name() view returns (string)",
@@ -139,29 +151,12 @@
         let hideSystemWallets = false; 
 
         function switchToken(tokenKey) {
-            const btnBnk = document.getElementById('tab-BNK');
-            const btnNew = document.getElementById('tab-NEW');
-
+            // โค้ดสลับ Token เหมือนเดิม
             if(tokenKey === 'BNK') {
-                btnBnk.className = "px-4 py-2 rounded-lg font-bold school-btn shadow-sm";
-                btnNew.className = "px-4 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] hover:bg-[#c5b9b6] transition-colors";
-                currentTokenConfig = {
-                    name: "BNK Governance Token",
-                    symbol: "BNK",
-                    contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
-                };
+                location.reload();
             } else {
-                btnNew.className = "px-4 py-2 rounded-lg font-bold school-btn shadow-sm";
-                btnBnk.className = "px-4 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] hover:bg-[#c5b9b6] transition-colors";
-                currentTokenConfig = {
-                    name: "New Custom Token",
-                    symbol: "NEW",
-                    contractAddress: "0x0000000000000000000000000000000000000000" 
-                };
-                alert("สลับมายังหน้า Token ใหม่");
-                return;
+                alert("สลับมายังหน้า Token ใหม่ (Coming Soon)");
             }
-            loadWalletData();
         }
 
         async function loadWalletData() {
@@ -197,10 +192,10 @@
             hideSystemWallets = !hideSystemWallets;
             const btn = document.getElementById('toggleSystemBtn');
             if (hideSystemWallets) {
-                btn.className = "text-xs bg-[#795548] text-white px-3 py-2 rounded-md border border-[#5d4037] font-medium transition-colors";
-                btn.innerText = "👁️‍🗨️ แสดง System Wallet แล้ว";
+                btn.className = "text-xs bg-[#795548] text-white px-4 py-2 rounded-md border-2 border-[#5d4037] font-bold shadow-sm transition-colors";
+                btn.innerText = "👁️‍🗨️ แสดง System Wallet";
             } else {
-                btn.className = "text-xs bg-[#efebe9] hover:bg-[#e6d7c3] text-[#5d4037] px-3 py-2 rounded-md border border-[#d7ccc8] font-medium transition-colors";
+                btn.className = "text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold shadow-sm transition-colors";
                 btn.innerText = "👁️ ซ่อน System Wallet";
             }
             renderLeaderboard();
@@ -216,18 +211,14 @@
                     whoBalances = JSON.parse(cachedData);
                     renderLeaderboard();
                     progressEl.innerText = "โหลดจาก Cache สำเร็จ (กำลังอัปเดตเบื้องหลัง...)";
-                } catch(e) {
-                    console.error("Cache parse error:", e);
-                }
+                } catch(e) { console.error("Cache error", e); }
             }
 
             for (let i = 0; i < uniqueAddresses.length; i++) {
                 const addr = uniqueAddresses[i]; 
                 if (!ethers.utils.isAddress(addr)) continue;
 
-                if (!cachedData) {
-                    progressEl.innerText = `กำลังดึงข้อมูล (${i + 1}/${uniqueAddresses.length})...`;
-                }
+                if (!cachedData) progressEl.innerText = `ดึงข้อมูล (${i + 1}/${uniqueAddresses.length})...`;
 
                 try {
                     const bal = await contract.balanceOf(addr);
@@ -239,9 +230,7 @@
                         codeWallet: info.codeWallet,
                         balance: balFloat
                     };
-                } catch(e) {
-                    console.error("ดึงยอดเงินไม่สำเร็จสำหรับ:", addr, e);
-                }
+                } catch(e) {}
                 
                 await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -250,7 +239,6 @@
                     renderLeaderboard();
                 }
             }
-
             progressEl.innerText = "อัปเดตข้อมูลล่าสุดครบถ้วนแล้ว ✓";
         }
 
@@ -277,16 +265,16 @@
                 const tr = document.createElement('tr');
                 tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
                 
-                let rankBadge = `<span class="text-[#8d6e63] font-medium">${index + 1}</span>`;
-                if(index === 0) rankBadge = `<span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full font-bold text-xs">🥇 1</span>`;
-                if(index === 1) rankBadge = `<span class="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full font-bold text-xs">🥈 2</span>`;
-                if(index === 2) rankBadge = `<span class="bg-orange-50 text-orange-800 px-2.5 py-1 rounded-full font-bold text-xs">🥉 3</span>`;
+                let rankBadge = `<span class="text-[#8d6e63] font-bold">${index + 1}</span>`;
+                if(index === 0) rankBadge = `<span class="bg-amber-200 text-amber-900 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-amber-300">🥇 1</span>`;
+                if(index === 1) rankBadge = `<span class="bg-slate-200 text-slate-800 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-slate-300">🥈 2</span>`;
+                if(index === 2) rankBadge = `<span class="bg-orange-100 text-orange-900 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-orange-200">🥉 3</span>`;
 
                 tr.innerHTML = `
-                    <td class="p-3 text-center">${rankBadge}</td>
-                    <td class="p-3 font-medium text-[#4a3b32] break-all">${holder.displayName}</td>
-                    <td class="p-3 text-[#8d6e63] text-sm">${holder.codeWallet}</td>
-                    <td class="p-3 text-right font-semibold text-[#5d4037]">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
+                    <td class="p-4 text-center">${rankBadge}</td>
+                    <td class="p-4 font-semibold text-[#4a3b32] break-all">${holder.displayName}</td>
+                    <td class="p-4 text-[#8d6e63] text-sm">${holder.codeWallet}</td>
+                    <td class="p-4 text-right font-bold text-[#5d4037]">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -314,8 +302,8 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // ดึงประวัติธุรกรรมย้อนหลัง 10 รายการล่าสุด
-                await loadPastTransactions(contract, provider);
+                // ดึงประวัติธุรกรรมจาก Token X Explorer API ตรงๆ
+                await loadPastTransactionsFromExplorer(contract.address);
 
                 await fetchBalancesAndLeaderboard(contract);
 
@@ -347,35 +335,29 @@
             }
         }
 
-        async function loadPastTransactions(contract, provider) {
+        // ฟังก์ชันใหม่: ดึงประวัติผ่าน Token X Explorer API (เหมือนรูปที่ 2 เป๊ะ)
+        async function loadPastTransactionsFromExplorer(contractAddress) {
             const tbody = document.getElementById('txTableBody');
-            tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">กำลังดึงประวัติธุรกรรม 10 รายการล่าสุด...</td></tr>`;
-
             try {
-                const currentBlock = await provider.getBlockNumber();
-                const fromBlock = Math.max(0, currentBlock - 3000); 
+                // ใช้ API ของ Blockscout Explorer ที่ Token X ใช้งานอยู่
+                const apiUrl = `https://explorer.tokenx.finance/api?module=account&action=tokentx&contractaddress=${contractAddress}&page=1&offset=20&sort=desc`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
 
-                const filter = contract.filters.Transfer();
-                const logs = await contract.queryFilter(filter, fromBlock, currentBlock);
-
-                logs.reverse();
-                const recentLogs = logs.slice(0, 10);
-
-                if (recentLogs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่พบประวัติธุรกรรมในช่วงนี้ (รอรับ Real-time)</td></tr>`;
-                    return;
+                if (data && data.status === "1" && data.result.length > 0) {
+                    tbody.innerHTML = '';
+                    // วนลูปโชว์ 20 ธุรกรรมล่าสุด
+                    data.result.slice(0, 20).forEach(tx => {
+                        const amountFloat = parseFloat(ethers.utils.formatUnits(tx.value, 18));
+                        addTransactionToTable(tx.from, tx.to, amountFloat, true);
+                    });
+                } else {
+                    throw new Error("No data from API");
                 }
-
-                tbody.innerHTML = '';
-
-                recentLogs.forEach(log => {
-                    const { from, to, value } = log.args;
-                    const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                    addTransactionToTable(from, to, amountFloat, true);
-                });
             } catch (err) {
-                console.error("Error loading past transactions:", err);
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">พร้อมสตรีมธุรกรรมแบบ Real-time แล้วครับ</td></tr>`;
+                console.error("Explorer API Fetch Error:", err);
+                // ถ้า API ขัดข้อง ให้ใช้โหมดรอ Real-time แทน
+                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่สามารถเชื่อมต่อ API ประวัติได้ (รอสตรีม Real-time ใหม่ล่าสุด...)</td></tr>`;
             }
         }
 
@@ -387,7 +369,7 @@
                     return `${info.who} <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
                 }
             }
-            return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+            return `<span class="text-sm font-mono text-[#5d4037]">${address.substring(0, 6)}...${address.substring(address.length - 4)}</span>`;
         }
 
         function addTransactionToTable(from, to, amountFloat, isPast = false) {
@@ -400,20 +382,20 @@
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
             if (!isPast) {
-                tr.classList.add("bg-[#efebe9]/50");
+                tr.classList.add("bg-[#d7ccc8]"); // ไฮไลท์สีน้ำตาลอ่อนกระพริบถ้าเป็นโอนสดๆ
             }
             
             tr.innerHTML = `
-                <td class="p-3">${getIdentity(from)}</td>
-                <td class="p-3">${getIdentity(to)}</td>
-                <td class="p-3 text-right font-semibold text-emerald-700">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                <td class="p-4">${getIdentity(from)}</td>
+                <td class="p-4">${getIdentity(to)}</td>
+                <td class="p-4 text-right font-black text-emerald-700">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
             `;
 
             if (isPast) {
                 tbody.appendChild(tr); 
             } else {
                 tbody.insertBefore(tr, tbody.firstChild); 
-                setTimeout(() => tr.classList.remove('bg-[#efebe9]/50'), 1500);
+                setTimeout(() => tr.classList.remove('bg-[#d7ccc8]'), 2000);
             }
         }
 
