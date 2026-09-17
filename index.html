@@ -38,11 +38,9 @@
         ::-webkit-scrollbar-thumb { background: #a1887f; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #795548; }
         
-        /* Animation สำหรับ Popup */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleUp { from { transform: scale(0.95); } to { transform: scale(1); } }
-        .modal-bg { animation: fadeIn 0.2s ease-out; }
-        .modal-content { animation: scaleUp 0.2s ease-out; }
+        /* เอฟเฟกต์ไฟกระพริบเตือนตอนมีคนโอน */
+        @keyframes radarPulse { 0% { background-color: #fcf8f2; } 50% { background-color: #e6d7c3; } 100% { background-color: #fcf8f2; } }
+        .new-transfer { animation: radarPulse 2s ease-in-out infinite; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -69,9 +67,41 @@
             </div>
         </div>
 
+        <!-- หอสังเกตการณ์ (ดักจับ Live Transfers) -->
+        <div class="school-card p-6 rounded-xl border-4 border-[#8d6e63]">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
+                <h2 class="text-2xl font-black text-[#3e2723] flex items-center gap-2">
+                    <span class="animate-pulse">🔭</span> หอสังเกตการณ์โอนเหรียญ (Live Radar)
+                </h2>
+                <span class="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold border border-green-300">
+                    🟢 ดักจับแบบ Real-time ทำงานอยู่...
+                </span>
+            </div>
+            
+            <div class="overflow-x-auto max-h-[400px] overflow-y-auto rounded-lg border border-[#d7ccc8] bg-white">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 school-table-header shadow-sm z-10">
+                        <tr>
+                            <th class="p-4 font-bold w-1/3">โอนจาก (From)</th>
+                            <th class="p-4 font-bold w-1/3">โอนไปยัง (To)</th>
+                            <th class="p-4 text-right font-bold w-1/3">จำนวน (Amount)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="txTableBody">
+                        <tr>
+                            <td colspan="3" class="p-10 text-center text-[#8d6e63] font-bold">
+                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะดักจับและแปลงชื่อคนโอนให้คุณทันที!
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Leaderboard Container -->
         <div class="school-card p-6 rounded-xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
-                <h2 class="text-2xl font-bold text-[#3e2723]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด (Leaderboard)</h2>
+                <h2 class="text-2xl font-bold text-[#3e2723]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด</h2>
                 
                 <div class="flex flex-wrap items-center gap-3">
                     <button onclick="toggleSystemWallets()" id="toggleSystemBtn" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
@@ -96,67 +126,13 @@
                     </thead>
                     <tbody id="leaderboardBody">
                         <tr>
-                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-bold text-lg animate-pulse">กำลังโหลดข้อมูลกระเป๋า...</td>
+                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-bold animate-pulse">กำลังโหลดข้อมูลกระเป๋า...</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
         </div>
 
-        <!-- หน้าต่าง Live Transfers ที่เพิ่มปุ่มเปิดหอสังเกตการณ์ -->
-        <div class="school-card p-6 rounded-xl">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
-                <h2 class="text-2xl font-bold text-[#3e2723]">📜 ประวัติการโอน (Live Transfers)</h2>
-                
-                <!-- ปุ่มเปิด Popup หอสังเกตการณ์ -->
-                <button onclick="openExplorerPopup()" class="bg-[#3e2723] hover:bg-[#271815] text-white px-5 py-2.5 rounded-lg border-2 border-[#5d4037] font-bold shadow-md transition-all flex items-center gap-2 hover:scale-105">
-                    🔭 เปิดหอสังเกตการณ์ (Explorer เต็มรูปแบบ)
-                </button>
-            </div>
-            
-            <div class="overflow-x-auto max-h-[300px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
-                <table class="w-full text-left border-collapse">
-                    <thead class="sticky top-0 school-table-header shadow-sm z-10">
-                        <tr>
-                            <th class="p-4 font-bold">จาก (From)</th>
-                            <th class="p-4 font-bold">ถึง (To)</th>
-                            <th class="p-4 text-right font-bold">จำนวน (Amount)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="txTableBody">
-                        <tr>
-                            <td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold">รอแสดงผลรายการโอนใหม่ (สตรีม Real-time ทันทีที่มีคนโอน)...</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </div>
-
-    <!-- โครงสร้าง Popup หอสังเกตการณ์ (Modal) -->
-    <div id="explorerModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-2 md:p-6 modal-bg">
-        <div class="bg-[#fcf8f2] w-full max-w-6xl h-full max-h-[95vh] rounded-xl shadow-2xl flex flex-col border-4 border-[#d7ccc8] modal-content">
-            
-            <!-- Header ของ Popup -->
-            <div class="flex flex-wrap justify-between items-center p-3 md:p-4 border-b-2 border-[#d7ccc8] bg-[#efebe9] rounded-t-lg gap-2">
-                <h2 class="text-lg md:text-xl font-black text-[#3e2723]">🔭 หอสังเกตการณ์ (Token X Explorer)</h2>
-                <div class="flex gap-2">
-                    <button onclick="openNewTab()" class="px-3 py-2 bg-white text-[#5d4037] rounded-md text-sm font-bold border border-[#d7ccc8] hover:bg-gray-50 shadow-sm">
-                        ↗️ เปิดแท็บใหม่
-                    </button>
-                    <button onclick="closeExplorerPopup()" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-bold border border-red-800 hover:bg-red-700 shadow-sm">
-                        ❌ ปิดหน้าต่าง
-                    </button>
-                </div>
-            </div>
-            
-            <!-- ส่วนแสดงผล Iframe -->
-            <div class="flex-1 w-full p-1 bg-white rounded-b-lg">
-                <!-- ใส่ URL ของ Token X ที่หน้า tab=token_transfers -->
-                <iframe id="explorerIframe" src="" class="w-full h-full rounded border-0" title="Token X Explorer"></iframe>
-            </div>
-        </div>
     </div>
 
     <script>
@@ -165,10 +141,9 @@
             symbol: "BNK",
             contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
         };
-        const EXPLORER_URL = `https://scan.tokenx.finance/token/${currentTokenConfig.contractAddress}?tab=token_transfers`;
         
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_final_v2"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_radar"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -181,25 +156,6 @@
         let walletMapping = {};
         let whoBalances = {}; 
         let hideSystemWallets = false; 
-
-        // ระบบควบคุม Popup หอสังเกตการณ์
-        function openExplorerPopup() {
-            const modal = document.getElementById('explorerModal');
-            const iframe = document.getElementById('explorerIframe');
-            // โหลด iframe เฉพาะตอนกดเปิด เพื่อประหยัดเน็ต
-            if(iframe.src === "" || iframe.src === window.location.href) {
-                iframe.src = EXPLORER_URL;
-            }
-            modal.classList.remove('hidden');
-        }
-
-        function closeExplorerPopup() {
-            document.getElementById('explorerModal').classList.add('hidden');
-        }
-
-        function openNewTab() {
-            window.open(EXPLORER_URL, '_blank');
-        }
 
         function switchToken(tokenKey) {
             if(tokenKey === 'BNK') {
@@ -349,11 +305,12 @@
 
                 await fetchBalancesAndLeaderboard(contract);
 
-                // สตรีมรายการโอนสดๆ (เฉพาะเหตุการณ์ใหม่ที่เกิดขึ้นหลังเปิดเว็บ)
+                // สตรีมรายการโอนสดๆ! นี่คือหอสังเกตการณ์ที่แท้จริง
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                    addTransactionToTable(from, to, amountFloat, false);
+                    addTransactionToTable(from, to, amountFloat);
 
+                    // อัปเดตตาราง Leaderboard ด้วย
                     let needsUpdate = false;
                     const fromLower = from.toLowerCase();
                     const toLower = to.toLowerCase();
@@ -378,33 +335,35 @@
             }
         }
 
+        // ระบบแปลงรหัส 0x ให้เป็นชื่อ (ทำได้เฉพาะเว็บเราเท่านั้น!)
         function getIdentity(address) {
             const addrLower = address.toLowerCase();
             if (walletMapping[addrLower]) {
                 const info = walletMapping[addrLower];
                 if (info.who !== address) {
-                    return `<span class="font-bold">${info.who}</span> <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
+                    return `<span class="font-bold text-[#3e2723]">${info.who}</span> <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
                 }
             }
-            return `<span class="text-sm font-mono text-[#5d4037]">${address.substring(0, 6)}...${address.substring(address.length - 4)}</span>`;
+            return `<span class="text-sm font-mono text-[#5d4037] bg-gray-100 px-2 py-1 rounded">${address.substring(0, 6)}...${address.substring(address.length - 4)}</span>`;
         }
 
-        function addTransactionToTable(from, to, amountFloat, isPast = false) {
+        function addTransactionToTable(from, to, amountFloat) {
             const tbody = document.getElementById('txTableBody');
             
-            if (tbody.innerHTML.includes("รอแสดงผล")) tbody.innerHTML = '';
+            if (tbody.innerHTML.includes("เปิดหน้านี้ทิ้งไว้")) tbody.innerHTML = '';
 
             const tr = document.createElement('tr');
-            tr.className = "border-b border-[#efebe9] transition-colors bg-[#e6d7c3] animate-pulse";
+            tr.className = "border-b border-[#efebe9] new-transfer transition-all";
             
             tr.innerHTML = `
-                <td class="p-4">${getIdentity(from)}</td>
-                <td class="p-4">${getIdentity(to)}</td>
-                <td class="p-4 text-right font-black text-emerald-700">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                <td class="p-4 align-top">${getIdentity(from)}</td>
+                <td class="p-4 align-top">${getIdentity(to)}</td>
+                <td class="p-4 text-right font-black text-emerald-700 text-lg align-top">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
             `;
 
             tbody.insertBefore(tr, tbody.firstChild); 
-            setTimeout(() => tr.classList.remove('bg-[#e6d7c3]', 'animate-pulse'), 3000);
+            // ให้ไฟกระพริบเตือนสัก 4 วินาทีแล้วหยุด
+            setTimeout(() => tr.classList.remove('new-transfer'), 4000);
         }
 
         loadWalletData();
