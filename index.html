@@ -55,6 +55,7 @@
             </button>
         </div>
 
+        <!-- Header -->
         <div class="school-card p-6 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-[#3e2723]" id="tokenName">BNK Governance Token</h1>
@@ -66,7 +67,7 @@
             </div>
         </div>
 
-        <!-- หอสังเกตการณ์ (ดักจับ Live Transfers) พร้อมฟีเจอร์ GE -->
+        <!-- 1. หอสังเกตการณ์ (ดักจับ Live Transfers) -->
         <div class="school-card p-6 rounded-xl border-4 border-[#8d6e63] relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-1 bg-green-500 animate-pulse"></div>
             
@@ -76,30 +77,24 @@
                         <span class="animate-pulse">🔭</span> เรดาร์จับตายอดโหวต (GE Radar)
                     </h2>
                     <div class="flex items-center gap-2 mt-2">
-                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border border-green-300 font-bold">
-                            🟢 เปิดระบบป้องกันเผลอปิดแท็บแล้ว
-                        </span>
-                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded border border-blue-300 font-bold">
-                            💾 ระบบ Backup ประวัติทำงานอัตโนมัติ
-                        </span>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border border-green-300 font-bold">🟢 เปิดระบบป้องกันเผลอปิดแท็บ</span>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded border border-blue-300 font-bold">💾 Backup อัตโนมัติ</span>
                     </div>
                 </div>
                 
                 <div class="flex flex-col items-end gap-2">
-                    <!-- สรุปยอด Volume -->
                     <div class="bg-[#3e2723] text-white px-4 py-2 rounded-lg border-2 border-[#5d4037] shadow-inner text-right min-w-[200px]">
-                        <p class="text-xs text-[#d7ccc8] font-bold uppercase tracking-wider">Volume ตรวจจับสะสม</p>
+                        <p class="text-xs text-[#d7ccc8] font-bold uppercase tracking-wider">Volume โหวต/โอน สะสม</p>
                         <p class="text-xl font-black text-emerald-400" id="liveVolume">0.00 <span class="text-sm text-white">BNK</span></p>
                     </div>
                     
-                    <!-- ปุ่ม Export CSV -->
                     <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold shadow-sm transition-colors text-sm flex items-center gap-2">
                         📥 ดาวน์โหลดประวัติเป็น CSV (Excel)
                     </button>
                 </div>
             </div>
             
-            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8] bg-white">
+            <div class="overflow-x-auto max-h-[400px] overflow-y-auto rounded-lg border border-[#d7ccc8] bg-white">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
@@ -120,30 +115,61 @@
             </div>
         </div>
 
-        <!-- Leaderboard Container -->
-        <div class="school-card p-6 rounded-xl">
+        <!-- 2. ตารางผู้ใช้เหรียญสูงสุด (Top Voters / Spenders) -->
+        <div class="school-card p-6 rounded-xl border-t-8 border-orange-400">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
-                <h2 class="text-2xl font-bold text-[#3e2723]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด</h2>
+                <div>
+                    <h2 class="text-2xl font-bold text-[#3e2723]">🔥 จัดอันดับผู้ใช้เหรียญสูงสุด (Top Voters / Spenders)</h2>
+                    <p class="text-sm text-[#8d6e63] mt-1">ใครทุ่มโหวตไปแล้วเท่าไหร่ (คำนวณจากยอดที่เรดาร์ดักจับได้)</p>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 school-table-header shadow-sm z-10">
+                        <tr>
+                            <th class="p-4 text-center w-24 font-bold">อันดับ</th>
+                            <th class="p-4 font-bold">ชื่อผู้โหวต (Voter)</th>
+                            <th class="p-4 font-bold">รหัสกระเป๋า (CodeWallet)</th>
+                            <th class="p-4 text-right font-bold text-orange-700">ยอดที่ใช้ไป (Total Spent)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="spendersBody">
+                        <tr>
+                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-medium">รอการดักจับข้อมูลจากเรดาร์...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 3. ตารางผู้ถือเหรียญสูงสุด (Top Holders) -->
+        <div class="school-card p-6 rounded-xl border-t-8 border-emerald-500">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
+                <div>
+                    <h2 class="text-2xl font-bold text-[#3e2723]">💰 จัดอันดับผู้ถือเหรียญสูงสุด (Top Holders)</h2>
+                    <p class="text-sm text-[#8d6e63] mt-1">ใครดองกระสุนเตรียมรอปาช่วงโค้งสุดท้าย (เช็กจากยอดคงเหลือ)</p>
+                </div>
                 
                 <div class="flex flex-wrap items-center gap-3">
                     <button onclick="toggleSystemWallets()" id="toggleSystemBtn" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
                         👁️ ซ่อน System Wallet
                     </button>
                     <button onclick="clearCacheAndReload()" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
-                        🔄 รีเฟรชข้อมูลผู้นำ
+                        🔄 รีเฟรชยอดคงเหลือ
                     </button>
                     <span id="loadingProgress" class="text-sm text-[#8d6e63] font-bold bg-white px-2 py-1 rounded">กำลังเตรียมโหลด...</span>
                 </div>
             </div>
 
-            <div class="overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
                             <th class="p-4 text-center w-24 font-bold">อันดับ</th>
                             <th class="p-4 font-bold">ชื่อ / Address (Who)</th>
                             <th class="p-4 font-bold">รหัสกระเป๋า (CodeWallet)</th>
-                            <th class="p-4 text-right font-bold">จำนวนเหรียญ (BNK)</th>
+                            <th class="p-4 text-right font-bold text-emerald-700">ยอดคงเหลือ (Balance)</th>
                         </tr>
                     </thead>
                     <tbody id="leaderboardBody">
@@ -158,10 +184,10 @@
     </div>
 
     <script>
-        // เปิดระบบป้องกันเผลอปิดแท็บ หรือ กดรีเฟรช (เบาเครื่องที่สุด เพราะเป็น Native Browser Feature)
+        // ป้องกันเผลอปิดแท็บ
         window.addEventListener('beforeunload', function (e) {
             e.preventDefault();
-            e.returnValue = ''; // บังคับให้เบราว์เซอร์แสดงแจ้งเตือน
+            e.returnValue = ''; 
         });
 
         let currentTokenConfig = {
@@ -171,8 +197,8 @@
         };
         
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_ge"; 
-        const HISTORY_CACHE_KEY = "bnk_live_history_ge"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_ge_v3"; 
+        const HISTORY_CACHE_KEY = "bnk_live_history_ge_v3"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -184,9 +210,9 @@
 
         let walletMapping = {};
         let whoBalances = {}; 
+        let whoSpent = {}; // เก็บข้อมูลการโหวต/ใช้เหรียญ
         let hideSystemWallets = false; 
 
-        // ระบบจัดเก็บประวัติและ Volume
         let liveHistoryData = []; 
         let sessionVolume = 0.00;
 
@@ -194,7 +220,7 @@
             if(tokenKey === 'BNK') {
                 location.reload();
             } else {
-                alert("สลับมายังหน้า Token ใหม่ (รอรับ Address ของ GE Token)");
+                alert("สลับมายังหน้า Token ใหม่ (รอรับ Address ของ GE Token จากอฟช.)");
             }
         }
 
@@ -215,9 +241,7 @@
                     }
                 });
                 
-                // โหลดประวัติ Backup คืนค่าถ้ามีคนเผลอกด F5 ไปแล้ว
                 loadHistoryFromCache();
-                
                 initBlockchain();
             } catch (err) {
                 console.error("Error loading JSON:", err);
@@ -225,7 +249,7 @@
         }
 
         function clearCacheAndReload() {
-            if(confirm("การรีเฟรชข้อมูลผู้นำ จะไม่ลบประวัติในเรดาร์ยืนยันหรือไม่?")) {
+            if(confirm("การรีเฟรชข้อมูลยอดคงเหลือ จะไม่ลบประวัติในเรดาร์ ยืนยันหรือไม่?")) {
                 localStorage.removeItem(CACHE_KEY);
                 location.reload();
             }
@@ -244,6 +268,7 @@
             renderLeaderboard();
         }
 
+        // ================== ระบบ TOP HOLDERS ==================
         async function fetchBalancesAndLeaderboard(contract) {
             const uniqueAddresses = Object.keys(walletMapping);
             const progressEl = document.getElementById('loadingProgress');
@@ -260,13 +285,11 @@
             for (let i = 0; i < uniqueAddresses.length; i++) {
                 const addr = uniqueAddresses[i]; 
                 if (!ethers.utils.isAddress(addr)) continue;
-
                 if (!cachedData) progressEl.innerText = `ดึงข้อมูล (${i + 1}/${uniqueAddresses.length})...`;
 
                 try {
                     const bal = await contract.balanceOf(addr);
                     const balFloat = parseFloat(ethers.utils.formatUnits(bal, 18));
-                    
                     const info = walletMapping[addr];
                     whoBalances[addr] = {
                         displayName: info.who,
@@ -274,7 +297,6 @@
                         balance: balFloat
                     };
                 } catch(e) {}
-                
                 await new Promise(resolve => setTimeout(resolve, 50));
 
                 if ((i + 1) % 20 === 0 || i === uniqueAddresses.length - 1) {
@@ -288,7 +310,6 @@
         function renderLeaderboard() {
             const tbody = document.getElementById('leaderboardBody');
             tbody.innerHTML = '';
-
             let sortedHolders = Object.values(whoBalances);
             if (hideSystemWallets) {
                 sortedHolders = sortedHolders.filter(holder => !holder.displayName.toLowerCase().includes("system wallet"));
@@ -313,21 +334,55 @@
                     <td class="p-4 text-center">${rankBadge}</td>
                     <td class="p-4 font-semibold text-[#4a3b32] break-all">${holder.displayName}</td>
                     <td class="p-4 text-[#8d6e63] text-sm">${holder.codeWallet}</td>
-                    <td class="p-4 text-right font-bold text-[#5d4037]">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
+                    <td class="p-4 text-right font-bold text-emerald-700">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
+        // ================== ระบบ TOP SPENDERS / VOTERS ==================
+        function renderSpendersLeaderboard() {
+            const tbody = document.getElementById('spendersBody');
+            tbody.innerHTML = '';
+            let sortedSpenders = Object.values(whoSpent);
+            
+            // ซ่อน System Wallet ไม่ให้มาแย่งซีนคนโหวตจริง
+            sortedSpenders = sortedSpenders.filter(spender => !spender.displayName.toLowerCase().includes("system wallet"));
+            sortedSpenders.sort((a, b) => b.spent - a.spent);
+
+            if (sortedSpenders.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-[#8d6e63]">ยังไม่มีข้อมูลการทุ่มโหวต (รอจับตาดูเรดาร์)</td></tr>`;
+                return;
+            }
+
+            sortedSpenders.forEach((spender, index) => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
+                
+                let rankBadge = `<span class="text-[#8d6e63] font-bold">${index + 1}</span>`;
+                if(index === 0) rankBadge = `<span class="bg-amber-200 text-amber-900 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-amber-300">🥇 1</span>`;
+                if(index === 1) rankBadge = `<span class="bg-slate-200 text-slate-800 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-slate-300">🥈 2</span>`;
+                if(index === 2) rankBadge = `<span class="bg-orange-100 text-orange-900 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-orange-200">🥉 3</span>`;
+
+                tr.innerHTML = `
+                    <td class="p-4 text-center">${rankBadge}</td>
+                    <td class="p-4 font-semibold text-[#3e2723] break-all">${spender.displayName}</td>
+                    <td class="p-4 text-[#8d6e63] text-sm">${spender.codeWallet}</td>
+                    <td class="p-4 text-right font-black text-orange-600">${spender.spent.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+
+        // ================== บล็อกเชน & เรดาร์ ==================
         async function initBlockchain() {
             if (typeof window.ethereum === 'undefined') {
                 alert("กรุณาติดตั้ง MetaMask");
                 return;
             }
-
             try {
                 await window.ethereum.request({ method: 'eth_requestAccounts' });
-
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 const contract = new ethers.Contract(currentTokenConfig.contractAddress, ABI, provider);
 
@@ -343,14 +398,11 @@
 
                 await fetchBalancesAndLeaderboard(contract);
 
-                // สตรีมรายการโอนสดๆ ตลอดเวลา
+                // ดักจับสดๆ 
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                    
-                    // บันทึกประวัติและแสดงขึ้นจอ
                     saveAndRenderLiveTransfer(from, to, amountFloat, false);
 
-                    // อัปเดตตาราง Leaderboard เบื้องหลัง
                     let needsUpdate = false;
                     const fromLower = from.toLowerCase();
                     const toLower = to.toLowerCase();
@@ -375,13 +427,22 @@
             }
         }
 
-        // ระบบแปลงรหัส 0x ให้เป็นชื่อ (ทำได้เฉพาะเว็บเราเท่านั้น!)
+        function getRawName(address) {
+            const addrLower = address.toLowerCase();
+            return (walletMapping[addrLower] && walletMapping[addrLower].who !== address) ? walletMapping[addrLower].who : address;
+        }
+
+        function getCodeWallet(address) {
+            const addrLower = address.toLowerCase();
+            return walletMapping[addrLower] ? walletMapping[addrLower].codeWallet : "-";
+        }
+
         function getIdentity(address, justName = false) {
             const addrLower = address.toLowerCase();
             if (walletMapping[addrLower]) {
                 const info = walletMapping[addrLower];
                 if (info.who !== address) {
-                    if(justName) return info.who; // คืนค่าเฉพาะชื่อสำหรับเอาลง Excel
+                    if(justName) return info.who; 
                     return `<span class="font-bold text-[#3e2723]">${info.who}</span> <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
                 }
             }
@@ -389,56 +450,67 @@
             return `<span class="text-sm font-mono text-[#5d4037] bg-gray-100 px-2 py-1 rounded">${address.substring(0, 6)}...${address.substring(address.length - 4)}</span>`;
         }
 
-        // โหลดประวัติเก่าจาก Cache กรณีเผลอกดปิด
         function loadHistoryFromCache() {
             const savedHistory = localStorage.getItem(HISTORY_CACHE_KEY);
             if(savedHistory) {
                 try {
                     liveHistoryData = JSON.parse(savedHistory);
                     const tbody = document.getElementById('txTableBody');
-                    if (liveHistoryData.length > 0) tbody.innerHTML = '';
+                    if (liveHistoryData.length > 0) {
+                        tbody.innerHTML = '';
+                        whoSpent = {}; // ล้างยอดสะสมเดิม
+                    }
                     
-                    // สร้างใหม่และคำนวณยอด
                     liveHistoryData.forEach(tx => {
                         sessionVolume += tx.amount;
+                        // อัปเดตตารางจัดอันดับผู้โหวต
+                        const fromLower = tx.from.toLowerCase();
+                        if(!whoSpent[fromLower]) {
+                            whoSpent[fromLower] = { displayName: tx.fromName, codeWallet: getCodeWallet(tx.from), spent: 0 };
+                        }
+                        whoSpent[fromLower].spent += tx.amount;
+
                         renderRowUI(tx.from, tx.to, tx.amount, tx.timestamp, true);
                     });
                     
                     document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">BNK</span>`;
+                    renderSpendersLeaderboard();
                 } catch(e){}
             }
         }
 
-        // เซฟประวัติลง Cache และแสดงขึ้นจอ
         function saveAndRenderLiveTransfer(from, to, amountFloat, isPast = false) {
             const timestamp = new Date().toLocaleString('th-TH');
             
-            // อัปเดต Volume
             sessionVolume += amountFloat;
             document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">BNK</span>`;
 
-            // บันทึกลง Array
+            // บันทึกสะสมยอดผู้โหวต
+            const fromLower = from.toLowerCase();
+            if(!whoSpent[fromLower]) {
+                whoSpent[fromLower] = { displayName: getRawName(from), codeWallet: getCodeWallet(from), spent: 0 };
+            }
+            whoSpent[fromLower].spent += amountFloat;
+            renderSpendersLeaderboard();
+
             liveHistoryData.unshift({
                 timestamp: timestamp,
                 from: from,
-                fromName: getIdentity(from, true),
+                fromName: getRawName(from),
                 to: to,
-                toName: getIdentity(to, true),
+                toName: getRawName(to),
                 amount: amountFloat
             });
             
-            // Limit เก็บไว้แค่ 1000 รายการ เพื่อไม่ให้เมมโมรี่ล้น
-            if(liveHistoryData.length > 1000) liveHistoryData.pop();
+            if(liveHistoryData.length > 2000) liveHistoryData.pop();
             localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(liveHistoryData));
 
-            // แสดงขึ้นจอ
             const placeholder = document.getElementById('radarPlaceholder');
             if(placeholder) placeholder.remove();
             
             renderRowUI(from, to, amountFloat, timestamp, isPast);
         }
 
-        // วาด UI ทีละแถว
         function renderRowUI(from, to, amountFloat, timestamp, isPast) {
             const tbody = document.getElementById('txTableBody');
             const tr = document.createElement('tr');
@@ -460,24 +532,19 @@
             }
         }
 
-        // ฟังก์ชันโหลดข้อมูลเป็นไฟล์ CSV (Excel)
         function exportToCSV() {
             if (liveHistoryData.length === 0) {
-                alert("ยังไม่มีประวัติการโอนให้ดาวน์โหลด");
+                alert("ยังไม่มีประวัติให้ดาวน์โหลด");
                 return;
             }
-
-            // สร้าง Header ของ Excel
-            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF รองรับภาษาไทย
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; 
             csvContent += "Time,From (Address),From (Name),To (Address),To (Name),Amount\n";
 
-            // ใส่ข้อมูลแต่ละแถว
             liveHistoryData.forEach(row => {
                 const line = `"${row.timestamp}","${row.from}","${row.fromName}","${row.to}","${row.toName}","${row.amount}"`;
                 csvContent += line + "\n";
             });
 
-            // สั่งโหลดลงเครื่อง
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
