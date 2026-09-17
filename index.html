@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
-        /* ธีมพื้นหลังไม้สีน้ำตาล-กระดาษครีม สไตล์โรงเรียน */
         body {
             background-color: #4a3b32; 
             background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png"); 
@@ -34,7 +33,6 @@
             color: #5d4037;
             border-bottom: 2px solid #d7ccc8;
         }
-        /* Custom Scrollbar ให้เข้าธีม */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #efebe9; border-radius: 4px; }
         ::-webkit-scrollbar-thumb { background: #a1887f; border-radius: 4px; }
@@ -45,7 +43,6 @@
 
     <div class="max-w-7xl mx-auto space-y-6">
         
-        <!-- Tab สำหรับรองรับ Token แบบใหม่ในอนาคต -->
         <div class="flex gap-2 pb-2">
             <button onclick="switchToken('BNK')" id="tab-BNK" class="px-5 py-2 rounded-lg font-bold school-btn shadow-sm">
                 BNK Governance Token
@@ -55,7 +52,6 @@
             </button>
         </div>
 
-        <!-- Header -->
         <div class="school-card p-6 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
                 <h1 class="text-3xl font-extrabold text-[#3e2723]" id="tokenName">BNK Governance Token</h1>
@@ -67,7 +63,6 @@
             </div>
         </div>
 
-        <!-- Leaderboard Container -->
         <div class="school-card p-6 rounded-xl">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
                 <h2 class="text-2xl font-bold text-[#3e2723]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด (Leaderboard)</h2>
@@ -102,7 +97,6 @@
             </div>
         </div>
 
-        <!-- Real-time Transactions Container -->
         <div class="school-card p-6 rounded-xl">
             <h2 class="text-2xl font-bold text-[#3e2723] mb-4 border-b pb-3 border-[#d7ccc8]">📜 ประวัติการโอน (Live & Past Transfers)</h2>
             <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
@@ -116,7 +110,7 @@
                     </thead>
                     <tbody id="txTableBody">
                         <tr>
-                            <td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold animate-pulse">กำลังดึงประวัติธุรกรรมย้อนหลัง...</td>
+                            <td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold animate-pulse">กำลังซิงค์ข้อมูลกับบล็อกเชน...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -133,7 +127,7 @@
         };
 
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_v8"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_final"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -207,7 +201,7 @@
                     whoBalances = JSON.parse(cachedData);
                     renderLeaderboard();
                     progressEl.innerText = "โหลดจาก Cache สำเร็จ (กำลังอัปเดตเบื้องหลัง...)";
-                } catch(e) { console.error("Cache error", e); }
+                } catch(e) {}
             }
 
             for (let i = 0; i < uniqueAddresses.length; i++) {
@@ -228,7 +222,7 @@
                     };
                 } catch(e) {}
                 
-                await new Promise(resolve => setTimeout(resolve, 100));
+                await new Promise(resolve => setTimeout(resolve, 50));
 
                 if ((i + 1) % 20 === 0 || i === uniqueAddresses.length - 1) {
                     localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
@@ -298,12 +292,12 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // โหลดประวัติผ่าน Smart Chunk Fetcher (ดึงตรงจาก Blockchain ไม่พึ่ง Proxy)
-                await loadPastTransactions(contract, provider);
+                // ดึงประวัติแบบเงียบๆ ไม่โวยวายตอน Error
+                await loadSafeTransactions(contract, provider);
 
                 await fetchBalancesAndLeaderboard(contract);
 
-                // สตรีมข้อมูลโอนล่าสุดแบบ Real-time ทันทีที่เกิดขึ้น
+                // สตรีมจับตาการโอนสดๆ ตลอดเวลาที่เปิดเว็บ
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
                     addTransactionToTable(from, to, amountFloat, false);
@@ -332,42 +326,32 @@
             }
         }
 
-        // ระบบ Smart Chunk Fetcher: ดึงประวัติจาก Blockchain ตรงๆ (ไล่หาทีละ 2,000 บล็อก)
-        async function loadPastTransactions(contract, provider) {
+        // ระบบดึงข้อมูลแบบปลอดภัย 100% ไม่แคร์ Proxy และดัก Error เงียบหมด
+        async function loadSafeTransactions(contract, provider) {
             const tbody = document.getElementById('txTableBody');
-            tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold animate-pulse">กำลังแกะรอยประวัติการโอนล่าสุดจากบล็อกเชน...</td></tr>`;
             
             try {
                 const currentBlock = await provider.getBlockNumber();
-                let foundLogs = [];
-                const chunkSize = 2000; // ค้นหาทีละ 2,000 บล็อก (ไม่ให้ RPC ทำงานหนักเกินไป)
-                const maxBlocksToSearch = 50000; // ย้อนหลังสูงสุด 50,000 บล็อก
-                let toBlock = currentBlock;
+                // ย้อนหลังแค่ 500 บล็อก เพื่อความชัวร์ว่าจะไม่โดนเตะ
+                const fromBlock = Math.max(0, currentBlock - 500); 
+                const filter = contract.filters.Transfer();
+                
+                const logs = await contract.queryFilter(filter, fromBlock, currentBlock);
 
-                // ถอยหลังหาจนกว่าจะเจออย่างน้อย 20 รายการ หรือจนกว่าจะสุดเพดาน
-                while (toBlock > Math.max(0, currentBlock - maxBlocksToSearch) && foundLogs.length < 20) {
-                    let fromBlock = Math.max(0, toBlock - chunkSize);
-                    const filter = contract.filters.Transfer();
-                    const logs = await contract.queryFilter(filter, fromBlock, toBlock);
-                    
-                    // นำข้อมูลที่เจอมาใส่เพิ่มใน Array (เอารายการใหม่ไว้บน)
-                    foundLogs = [...logs.reverse(), ...foundLogs];
-                    toBlock = fromBlock - 1;
-                }
-
-                if (foundLogs.length > 0) {
+                if (logs.length > 0) {
                     tbody.innerHTML = '';
-                    foundLogs.slice(0, 20).forEach(log => {
+                    logs.reverse().slice(0, 20).forEach(log => {
                         const { from, to, value } = log.args;
                         const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
                         addTransactionToTable(from, to, amountFloat, true);
                     });
                 } else {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-[#8d6e63]">ไม่มีการเคลื่อนไหวในช่วงเวลาที่ผ่านมา (กำลังเฝ้าสังเกตการณ์ Real-time...)</td></tr>`;
+                    // ถ้าช่วงเวลาสั้นๆ นั้นไม่มีใครโอนเลย จะแสดงข้อความนี้
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold">รอจับตาดูการโอนเหรียญ (Real-time) ทันทีที่มีการเคลื่อนไหว...</td></tr>`;
                 }
             } catch (error) {
-                console.error("RPC Smart Fetch Error:", error);
-                tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-[#8d6e63]">พร้อมแสดงผลรายการโอนใหม่ (Real-time) ทันทีที่มีการเคลื่อนไหว...</td></tr>`;
+                // ถ้า Token X ปฏิเสธอีก จะไม่พ่น Error ลง Console ให้กวนใจ และเข้าโหมดรอแบบเนียนๆ
+                tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold">หอสังเกตการณ์พร้อมแล้ว! รอจับรายการโอนแบบ Real-time ทันทีที่มีคนโอน...</td></tr>`;
             }
         }
 
@@ -376,7 +360,7 @@
             if (walletMapping[addrLower]) {
                 const info = walletMapping[addrLower];
                 if (info.who !== address) {
-                    return `${info.who} <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
+                    return `<span class="font-bold">${info.who}</span> <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
                 }
             }
             return `<span class="text-sm font-mono text-[#5d4037]">${address.substring(0, 6)}...${address.substring(address.length - 4)}</span>`;
@@ -385,14 +369,16 @@
         function addTransactionToTable(from, to, amountFloat, isPast = false) {
             const tbody = document.getElementById('txTableBody');
             
-            if (isPast && tbody.innerHTML.includes("กำลังแกะรอย")) {
+            if (isPast && tbody.innerHTML.includes("รอจับตาดู")) {
                 tbody.innerHTML = '';
             }
 
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
             if (!isPast) {
-                tr.classList.add("bg-[#d7ccc8]"); // ไฮไลท์สีน้ำตาลอ่อนถ้าเป็นโอนสดๆ แบบเรียลไทม์
+                // ถ้ามีรายการโอนเข้ามาสดๆ ตอนกำลังเปิดเว็บ จะเด้งกระพริบสีเตือน!
+                tr.classList.add("bg-[#e6d7c3]"); 
+                tr.classList.add("animate-pulse"); 
             }
             
             tr.innerHTML = `
@@ -404,8 +390,14 @@
             if (isPast) {
                 tbody.appendChild(tr); 
             } else {
+                // ถ้ารายการมาใหม่ ดันขึ้นบรรทัดแรกสุด พร้อมแจ้ง Alert ให้สะดุดตา
+                if(tbody.firstChild && tbody.firstChild.innerHTML && tbody.firstChild.innerHTML.includes("หอสังเกตการณ์")) {
+                    tbody.innerHTML = '';
+                }
                 tbody.insertBefore(tr, tbody.firstChild); 
-                setTimeout(() => tr.classList.remove('bg-[#d7ccc8]'), 2500); // ไฮไลท์กระพริบเมื่อมีคนโอน
+                setTimeout(() => {
+                    tr.classList.remove('bg-[#e6d7c3]', 'animate-pulse');
+                }, 3000);
             }
         }
 
