@@ -135,7 +135,7 @@
         };
 
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_v4"; // เปลี่ยน key เพื่อบังคับโหลดใหม่ให้เคลียร์
+        const CACHE_KEY = "bnk_leaderboard_cache_v5"; // เปลี่ยนเวอร์ชัน Cache เพื่อบังคับอัปเดต
 
         const ABI = [
             "function name() view returns (string)",
@@ -300,7 +300,7 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // ดึงประวัติธุรกรรมโดยใช้ Proxy แก้ปัญหา CORS
+                // ดึงประวัติธุรกรรมโดยใช้ Proxy ตัวใหม่แก้ปัญหา CORS
                 await loadPastTransactionsFromExplorer(contract.address);
 
                 await fetchBalancesAndLeaderboard(contract);
@@ -333,21 +333,20 @@
             }
         }
 
-        // ฟังก์ชันดึงประวัติผ่าน API โดยใช้ Proxy เพื่อแก้ปัญหาเบราว์เซอร์บล็อก CORS
+        // ฟังก์ชันดึงประวัติผ่าน API โดยเปลี่ยนมาใช้ Proxy ตัวใหม่ที่เสถียรกว่า (corsproxy.io)
         async function loadPastTransactionsFromExplorer(contractAddress) {
             const tbody = document.getElementById('txTableBody');
             try {
                 // URL ของ API Token X Explorer
                 const targetUrl = `https://explorer.tokenx.finance/api?module=token&action=tokentx&contractaddress=${contractAddress}&page=1&offset=20&sort=desc`;
                 
-                // ใช้บริการ AllOrigins Proxy เป็นตัวกลางดึงข้อมูล
-                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+                // เปลี่ยนมาใช้ corsproxy.io (ทำงานได้เร็วกว่าและคืนค่าเป็น JSON โดยตรง)
+                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
                 
                 const response = await fetch(proxyUrl);
-                const proxyData = await response.json();
                 
-                // ข้อมูลจริงๆ จะถูกห่ออยู่ใน property ที่ชื่อว่า contents
-                const data = JSON.parse(proxyData.contents);
+                // อ่านค่าเป็น JSON ได้ทันที ไม่ต้อง .contents 
+                const data = await response.json();
 
                 if (data && data.status === "1" && data.result.length > 0) {
                     tbody.innerHTML = '';
@@ -357,7 +356,7 @@
                         addTransactionToTable(tx.from, tx.to, amountFloat, true);
                     });
                 } else {
-                    throw new Error("No data from API");
+                    throw new Error("No data from API or Empty Result");
                 }
             } catch (err) {
                 console.error("Explorer API Fetch Error:", err);
