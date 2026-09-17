@@ -9,12 +9,12 @@
     <style>
         /* ธีมพื้นหลังไม้สีน้ำตาล-กระดาษครีม สไตล์โรงเรียน */
         body {
-            background-color: #4a3b32; /* สีน้ำตาลเข้ม */
-            background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png"); /* ลายไม้จางๆ */
+            background-color: #4a3b32; 
+            background-image: url("https://www.transparenttextures.com/patterns/wood-pattern.png"); 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .school-card {
-            background-color: #fcf8f2; /* สีกระดาษสมุดครีม */
+            background-color: #fcf8f2; 
             border: 3px solid #d7ccc8;
             box-shadow: 4px 4px 0px rgba(0,0,0,0.2);
             color: #4a3b32;
@@ -73,11 +73,9 @@
                 <h2 class="text-2xl font-bold text-[#3e2723]">🏆 จัดอันดับผู้ถือเหรียญสูงสุด (Leaderboard)</h2>
                 
                 <div class="flex flex-wrap items-center gap-3">
-                    <!-- ปุ่มเปิด/ปิดซ่อน System Wallet -->
                     <button onclick="toggleSystemWallets()" id="toggleSystemBtn" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
                         👁️ ซ่อน System Wallet
                     </button>
-                    <!-- ปุ่มรีเฟรช Cache -->
                     <button onclick="clearCacheAndReload()" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
                         🔄 รีเฟรชข้อมูลใหม่ทั้งหมด
                     </button>
@@ -135,7 +133,7 @@
         };
 
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_v6"; // รีเซ็ต Cache เพื่อความชัวร์
+        const CACHE_KEY = "bnk_leaderboard_cache_v7"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -300,7 +298,7 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // ดึงประวัติธุรกรรม (แผน A + แผน B)
+                // ดึงประวัติธุรกรรม (ระบบ Multi-Proxy)
                 await loadPastTransactionsFromExplorer(contract, provider);
 
                 await fetchBalancesAndLeaderboard(contract);
@@ -333,35 +331,45 @@
             }
         }
 
-        // ฟังก์ชันดึงประวัติ: แผน A ใช้ API (AllOrigins Raw) -> แผน B ใช้ Ethers.js ดึงย้อนหลังจาก RPC โดยตรง
+        // ระบบ Multi-Proxy แก้อาการโดนบล็อกจาก Cloudflare
         async function loadPastTransactionsFromExplorer(contract, provider) {
             const tbody = document.getElementById('txTableBody');
             
-            try {
-                // แผน A: ดึงจาก Token X Explorer API โดยใช้ AllOrigins Raw Proxy (คืนค่า JSON ไม่ต้องใช้ .contents)
-                const targetUrl = `https://explorer.tokenx.finance/api?module=token&action=tokentx&contractaddress=${contract.address}&page=1&offset=20&sort=desc`;
-                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
-                
-                const response = await fetch(proxyUrl);
-                const data = await response.json();
+            const targetUrl = `https://explorer.tokenx.finance/api?module=token&action=tokentx&contractaddress=${contract.address}&page=1&offset=20&sort=desc`;
+            
+            const proxies = [
+                `https://api.codetabs.com/v1/proxy?quest=${targetUrl}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+                `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(targetUrl)}`
+            ];
 
-                if (data && data.status === "1" && data.result && data.result.length > 0) {
-                    tbody.innerHTML = '';
-                    data.result.slice(0, 20).forEach(tx => {
-                        const amountFloat = parseFloat(ethers.utils.formatUnits(tx.value, 18));
-                        addTransactionToTable(tx.from, tx.to, amountFloat, true);
-                    });
-                    return; // ถ้าสำเร็จให้จบฟังก์ชันเลย
-                } else {
-                    throw new Error("Proxy API returns empty or error status.");
+            let success = false;
+
+            for (let proxyUrl of proxies) {
+                try {
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) continue;
+                    
+                    const data = await response.json();
+                    if (data && data.status === "1" && data.result && data.result.length > 0) {
+                        tbody.innerHTML = '';
+                        data.result.slice(0, 20).forEach(tx => {
+                            const amountFloat = parseFloat(ethers.utils.formatUnits(tx.value, 18));
+                            addTransactionToTable(tx.from, tx.to, amountFloat, true);
+                        });
+                        success = true;
+                        break; 
+                    }
+                } catch (err) {
+                    console.warn("Proxy failed, trying next...");
                 }
-            } catch (err) {
-                console.warn("API Proxy failed, falling back to RPC...", err);
-                
-                // แผน B: ถ้า Proxy พัง ให้ดึงจาก Blockchain RPC โดยตรง (ย้อนหลัง 800 บล็อก กันโดนแบน)
+            }
+
+            // ถ้าโดนบล็อกทุก Proxy ให้พึ่ง RPC โดยตรงสั้นๆ (100 block กันเตะ)
+            if (!success) {
                 try {
                     const currentBlock = await provider.getBlockNumber();
-                    const fromBlock = Math.max(0, currentBlock - 800); 
+                    const fromBlock = Math.max(0, currentBlock - 100); 
                     const filter = contract.filters.Transfer();
                     const logs = await contract.queryFilter(filter, fromBlock, currentBlock);
 
@@ -373,11 +381,10 @@
                             addTransactionToTable(from, to, amountFloat, true);
                         });
                     } else {
-                        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่พบประวัติในช่วง 800 บล็อกล่าสุด (รอสตรีม Real-time...)</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">รอรับรายการโอนใหม่ (Real-time)...</td></tr>`;
                     }
                 } catch (rpcErr) {
-                    console.error("RPC Fetch Error:", rpcErr);
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่สามารถดึงประวัติย้อนหลังได้ (รอสตรีม Real-time ใหม่ล่าสุด...)</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">พร้อมแสดงผลรายการโอนใหม่ (Real-time)...</td></tr>`;
                 }
             }
         }
@@ -403,7 +410,7 @@
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
             if (!isPast) {
-                tr.classList.add("bg-[#d7ccc8]"); // ไฮไลท์สีน้ำตาลอ่อนถ้าเป็นโอนสดๆ
+                tr.classList.add("bg-[#d7ccc8]"); 
             }
             
             tr.innerHTML = `
