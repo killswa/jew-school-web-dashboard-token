@@ -133,7 +133,7 @@
         };
 
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_v7"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_v8"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -298,11 +298,12 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // ดึงประวัติธุรกรรม (ระบบ Multi-Proxy)
-                await loadPastTransactionsFromExplorer(contract, provider);
+                // โหลดประวัติผ่าน Smart Chunk Fetcher (ดึงตรงจาก Blockchain ไม่พึ่ง Proxy)
+                await loadPastTransactions(contract, provider);
 
                 await fetchBalancesAndLeaderboard(contract);
 
+                // สตรีมข้อมูลโอนล่าสุดแบบ Real-time ทันทีที่เกิดขึ้น
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
                     addTransactionToTable(from, to, amountFloat, false);
@@ -331,61 +332,42 @@
             }
         }
 
-        // ระบบ Multi-Proxy แก้อาการโดนบล็อกจาก Cloudflare
-        async function loadPastTransactionsFromExplorer(contract, provider) {
+        // ระบบ Smart Chunk Fetcher: ดึงประวัติจาก Blockchain ตรงๆ (ไล่หาทีละ 2,000 บล็อก)
+        async function loadPastTransactions(contract, provider) {
             const tbody = document.getElementById('txTableBody');
+            tbody.innerHTML = `<tr><td colspan="3" class="p-8 text-center text-[#8d6e63] font-bold animate-pulse">กำลังแกะรอยประวัติการโอนล่าสุดจากบล็อกเชน...</td></tr>`;
             
-            const targetUrl = `https://explorer.tokenx.finance/api?module=token&action=tokentx&contractaddress=${contract.address}&page=1&offset=20&sort=desc`;
-            
-            const proxies = [
-                `https://api.codetabs.com/v1/proxy?quest=${targetUrl}`,
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-                `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(targetUrl)}`
-            ];
+            try {
+                const currentBlock = await provider.getBlockNumber();
+                let foundLogs = [];
+                const chunkSize = 2000; // ค้นหาทีละ 2,000 บล็อก (ไม่ให้ RPC ทำงานหนักเกินไป)
+                const maxBlocksToSearch = 50000; // ย้อนหลังสูงสุด 50,000 บล็อก
+                let toBlock = currentBlock;
 
-            let success = false;
-
-            for (let proxyUrl of proxies) {
-                try {
-                    const response = await fetch(proxyUrl);
-                    if (!response.ok) continue;
-                    
-                    const data = await response.json();
-                    if (data && data.status === "1" && data.result && data.result.length > 0) {
-                        tbody.innerHTML = '';
-                        data.result.slice(0, 20).forEach(tx => {
-                            const amountFloat = parseFloat(ethers.utils.formatUnits(tx.value, 18));
-                            addTransactionToTable(tx.from, tx.to, amountFloat, true);
-                        });
-                        success = true;
-                        break; 
-                    }
-                } catch (err) {
-                    console.warn("Proxy failed, trying next...");
-                }
-            }
-
-            // ถ้าโดนบล็อกทุก Proxy ให้พึ่ง RPC โดยตรงสั้นๆ (100 block กันเตะ)
-            if (!success) {
-                try {
-                    const currentBlock = await provider.getBlockNumber();
-                    const fromBlock = Math.max(0, currentBlock - 100); 
+                // ถอยหลังหาจนกว่าจะเจออย่างน้อย 20 รายการ หรือจนกว่าจะสุดเพดาน
+                while (toBlock > Math.max(0, currentBlock - maxBlocksToSearch) && foundLogs.length < 20) {
+                    let fromBlock = Math.max(0, toBlock - chunkSize);
                     const filter = contract.filters.Transfer();
-                    const logs = await contract.queryFilter(filter, fromBlock, currentBlock);
-
-                    if (logs.length > 0) {
-                        tbody.innerHTML = '';
-                        logs.reverse().slice(0, 20).forEach(log => {
-                            const { from, to, value } = log.args;
-                            const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                            addTransactionToTable(from, to, amountFloat, true);
-                        });
-                    } else {
-                        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">รอรับรายการโอนใหม่ (Real-time)...</td></tr>`;
-                    }
-                } catch (rpcErr) {
-                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">พร้อมแสดงผลรายการโอนใหม่ (Real-time)...</td></tr>`;
+                    const logs = await contract.queryFilter(filter, fromBlock, toBlock);
+                    
+                    // นำข้อมูลที่เจอมาใส่เพิ่มใน Array (เอารายการใหม่ไว้บน)
+                    foundLogs = [...logs.reverse(), ...foundLogs];
+                    toBlock = fromBlock - 1;
                 }
+
+                if (foundLogs.length > 0) {
+                    tbody.innerHTML = '';
+                    foundLogs.slice(0, 20).forEach(log => {
+                        const { from, to, value } = log.args;
+                        const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
+                        addTransactionToTable(from, to, amountFloat, true);
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-[#8d6e63]">ไม่มีการเคลื่อนไหวในช่วงเวลาที่ผ่านมา (กำลังเฝ้าสังเกตการณ์ Real-time...)</td></tr>`;
+                }
+            } catch (error) {
+                console.error("RPC Smart Fetch Error:", error);
+                tbody.innerHTML = `<tr><td colspan="3" class="p-6 text-center text-[#8d6e63]">พร้อมแสดงผลรายการโอนใหม่ (Real-time) ทันทีที่มีการเคลื่อนไหว...</td></tr>`;
             }
         }
 
@@ -403,14 +385,14 @@
         function addTransactionToTable(from, to, amountFloat, isPast = false) {
             const tbody = document.getElementById('txTableBody');
             
-            if (isPast && tbody.innerHTML.includes("กำลังดึงประวัติ")) {
+            if (isPast && tbody.innerHTML.includes("กำลังแกะรอย")) {
                 tbody.innerHTML = '';
             }
 
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
             if (!isPast) {
-                tr.classList.add("bg-[#d7ccc8]"); 
+                tr.classList.add("bg-[#d7ccc8]"); // ไฮไลท์สีน้ำตาลอ่อนถ้าเป็นโอนสดๆ แบบเรียลไทม์
             }
             
             tr.innerHTML = `
@@ -423,7 +405,7 @@
                 tbody.appendChild(tr); 
             } else {
                 tbody.insertBefore(tr, tbody.firstChild); 
-                setTimeout(() => tr.classList.remove('bg-[#d7ccc8]'), 2000);
+                setTimeout(() => tr.classList.remove('bg-[#d7ccc8]'), 2500); // ไฮไลท์กระพริบเมื่อมีคนโอน
             }
         }
 
