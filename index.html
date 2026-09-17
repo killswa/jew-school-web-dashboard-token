@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BNK Governance Dashboard - School Edition</title>
+    <title>BNK Governance Dashboard - GE Radar Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
@@ -38,7 +38,6 @@
         ::-webkit-scrollbar-thumb { background: #a1887f; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #795548; }
         
-        /* เอฟเฟกต์ไฟกระพริบเตือนตอนมีคนโอน */
         @keyframes radarPulse { 0% { background-color: #fcf8f2; } 50% { background-color: #e6d7c3; } 100% { background-color: #fcf8f2; } }
         .new-transfer { animation: radarPulse 2s ease-in-out infinite; }
     </style>
@@ -52,7 +51,7 @@
                 BNK Governance Token
             </button>
             <button onclick="switchToken('NEW')" id="tab-NEW" class="px-5 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] border-2 border-[#bcaaa4] hover:bg-[#bcaaa4] transition-all">
-                New Token (Coming Soon)
+                New Token (GE Event - Coming Soon)
             </button>
         </div>
 
@@ -67,30 +66,53 @@
             </div>
         </div>
 
-        <!-- หอสังเกตการณ์ (ดักจับ Live Transfers) -->
-        <div class="school-card p-6 rounded-xl border-4 border-[#8d6e63]">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
-                <h2 class="text-2xl font-black text-[#3e2723] flex items-center gap-2">
-                    <span class="animate-pulse">🔭</span> หอสังเกตการณ์โอนเหรียญ (Live Radar)
-                </h2>
-                <span class="text-sm bg-green-100 text-green-800 px-3 py-1 rounded-full font-bold border border-green-300">
-                    🟢 ดักจับแบบ Real-time ทำงานอยู่...
-                </span>
+        <!-- หอสังเกตการณ์ (ดักจับ Live Transfers) พร้อมฟีเจอร์ GE -->
+        <div class="school-card p-6 rounded-xl border-4 border-[#8d6e63] relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-green-500 animate-pulse"></div>
+            
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-4 border-[#d7ccc8] gap-4">
+                <div>
+                    <h2 class="text-2xl font-black text-[#3e2723] flex items-center gap-2">
+                        <span class="animate-pulse">🔭</span> เรดาร์จับตายอดโหวต (GE Radar)
+                    </h2>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border border-green-300 font-bold">
+                            🟢 เปิดระบบป้องกันเผลอปิดแท็บแล้ว
+                        </span>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded border border-blue-300 font-bold">
+                            💾 ระบบ Backup ประวัติทำงานอัตโนมัติ
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex flex-col items-end gap-2">
+                    <!-- สรุปยอด Volume -->
+                    <div class="bg-[#3e2723] text-white px-4 py-2 rounded-lg border-2 border-[#5d4037] shadow-inner text-right min-w-[200px]">
+                        <p class="text-xs text-[#d7ccc8] font-bold uppercase tracking-wider">Volume ตรวจจับสะสม</p>
+                        <p class="text-xl font-black text-emerald-400" id="liveVolume">0.00 <span class="text-sm text-white">BNK</span></p>
+                    </div>
+                    
+                    <!-- ปุ่ม Export CSV -->
+                    <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold shadow-sm transition-colors text-sm flex items-center gap-2">
+                        📥 ดาวน์โหลดประวัติเป็น CSV (Excel)
+                    </button>
+                </div>
             </div>
             
-            <div class="overflow-x-auto max-h-[400px] overflow-y-auto rounded-lg border border-[#d7ccc8] bg-white">
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8] bg-white">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
-                            <th class="p-4 font-bold w-1/3">โอนจาก (From)</th>
-                            <th class="p-4 font-bold w-1/3">โอนไปยัง (To)</th>
-                            <th class="p-4 text-right font-bold w-1/3">จำนวน (Amount)</th>
+                            <th class="p-4 font-bold w-1/4">เวลา (Time)</th>
+                            <th class="p-4 font-bold w-1/4">โอนจาก (From)</th>
+                            <th class="p-4 font-bold w-1/4">โอนไปยัง (To)</th>
+                            <th class="p-4 text-right font-bold w-1/4">จำนวน (Amount)</th>
                         </tr>
                     </thead>
                     <tbody id="txTableBody">
-                        <tr>
-                            <td colspan="3" class="p-10 text-center text-[#8d6e63] font-bold">
-                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะดักจับและแปลงชื่อคนโอนให้คุณทันที!
+                        <tr id="radarPlaceholder">
+                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-bold">
+                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะดักจับและแปลงชื่อคนโอนให้คุณทันที! (เซฟข้อมูลให้อัตโนมัติ)
                             </td>
                         </tr>
                     </tbody>
@@ -108,7 +130,7 @@
                         👁️ ซ่อน System Wallet
                     </button>
                     <button onclick="clearCacheAndReload()" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
-                        🔄 รีเฟรชข้อมูล
+                        🔄 รีเฟรชข้อมูลผู้นำ
                     </button>
                     <span id="loadingProgress" class="text-sm text-[#8d6e63] font-bold bg-white px-2 py-1 rounded">กำลังเตรียมโหลด...</span>
                 </div>
@@ -136,6 +158,12 @@
     </div>
 
     <script>
+        // เปิดระบบป้องกันเผลอปิดแท็บ หรือ กดรีเฟรช (เบาเครื่องที่สุด เพราะเป็น Native Browser Feature)
+        window.addEventListener('beforeunload', function (e) {
+            e.preventDefault();
+            e.returnValue = ''; // บังคับให้เบราว์เซอร์แสดงแจ้งเตือน
+        });
+
         let currentTokenConfig = {
             name: "BNK Governance Token",
             symbol: "BNK",
@@ -143,7 +171,8 @@
         };
         
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_radar"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_ge"; 
+        const HISTORY_CACHE_KEY = "bnk_live_history_ge"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -157,11 +186,15 @@
         let whoBalances = {}; 
         let hideSystemWallets = false; 
 
+        // ระบบจัดเก็บประวัติและ Volume
+        let liveHistoryData = []; 
+        let sessionVolume = 0.00;
+
         function switchToken(tokenKey) {
             if(tokenKey === 'BNK') {
                 location.reload();
             } else {
-                alert("สลับมายังหน้า Token ใหม่ (Coming Soon)");
+                alert("สลับมายังหน้า Token ใหม่ (รอรับ Address ของ GE Token)");
             }
         }
 
@@ -181,6 +214,10 @@
                         };
                     }
                 });
+                
+                // โหลดประวัติ Backup คืนค่าถ้ามีคนเผลอกด F5 ไปแล้ว
+                loadHistoryFromCache();
+                
                 initBlockchain();
             } catch (err) {
                 console.error("Error loading JSON:", err);
@@ -188,9 +225,10 @@
         }
 
         function clearCacheAndReload() {
-            localStorage.removeItem(CACHE_KEY);
-            alert("ล้าง Cache เรียบร้อยแล้ว กำลังโหลดข้อมูลใหม่...");
-            location.reload();
+            if(confirm("การรีเฟรชข้อมูลผู้นำ จะไม่ลบประวัติในเรดาร์ยืนยันหรือไม่?")) {
+                localStorage.removeItem(CACHE_KEY);
+                location.reload();
+            }
         }
 
         function toggleSystemWallets() {
@@ -305,12 +343,14 @@
 
                 await fetchBalancesAndLeaderboard(contract);
 
-                // สตรีมรายการโอนสดๆ! นี่คือหอสังเกตการณ์ที่แท้จริง
+                // สตรีมรายการโอนสดๆ ตลอดเวลา
                 contract.on("Transfer", (from, to, value, event) => {
                     const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                    addTransactionToTable(from, to, amountFloat);
+                    
+                    // บันทึกประวัติและแสดงขึ้นจอ
+                    saveAndRenderLiveTransfer(from, to, amountFloat, false);
 
-                    // อัปเดตตาราง Leaderboard ด้วย
+                    // อัปเดตตาราง Leaderboard เบื้องหลัง
                     let needsUpdate = false;
                     const fromLower = from.toLowerCase();
                     const toLower = to.toLowerCase();
@@ -336,34 +376,115 @@
         }
 
         // ระบบแปลงรหัส 0x ให้เป็นชื่อ (ทำได้เฉพาะเว็บเราเท่านั้น!)
-        function getIdentity(address) {
+        function getIdentity(address, justName = false) {
             const addrLower = address.toLowerCase();
             if (walletMapping[addrLower]) {
                 const info = walletMapping[addrLower];
                 if (info.who !== address) {
+                    if(justName) return info.who; // คืนค่าเฉพาะชื่อสำหรับเอาลง Excel
                     return `<span class="font-bold text-[#3e2723]">${info.who}</span> <br><span class="text-xs text-[#8d6e63]">(${info.codeWallet})</span>`;
                 }
             }
+            if(justName) return address;
             return `<span class="text-sm font-mono text-[#5d4037] bg-gray-100 px-2 py-1 rounded">${address.substring(0, 6)}...${address.substring(address.length - 4)}</span>`;
         }
 
-        function addTransactionToTable(from, to, amountFloat) {
-            const tbody = document.getElementById('txTableBody');
-            
-            if (tbody.innerHTML.includes("เปิดหน้านี้ทิ้งไว้")) tbody.innerHTML = '';
+        // โหลดประวัติเก่าจาก Cache กรณีเผลอกดปิด
+        function loadHistoryFromCache() {
+            const savedHistory = localStorage.getItem(HISTORY_CACHE_KEY);
+            if(savedHistory) {
+                try {
+                    liveHistoryData = JSON.parse(savedHistory);
+                    const tbody = document.getElementById('txTableBody');
+                    if (liveHistoryData.length > 0) tbody.innerHTML = '';
+                    
+                    // สร้างใหม่และคำนวณยอด
+                    liveHistoryData.forEach(tx => {
+                        sessionVolume += tx.amount;
+                        renderRowUI(tx.from, tx.to, tx.amount, tx.timestamp, true);
+                    });
+                    
+                    document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">BNK</span>`;
+                } catch(e){}
+            }
+        }
 
+        // เซฟประวัติลง Cache และแสดงขึ้นจอ
+        function saveAndRenderLiveTransfer(from, to, amountFloat, isPast = false) {
+            const timestamp = new Date().toLocaleString('th-TH');
+            
+            // อัปเดต Volume
+            sessionVolume += amountFloat;
+            document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">BNK</span>`;
+
+            // บันทึกลง Array
+            liveHistoryData.unshift({
+                timestamp: timestamp,
+                from: from,
+                fromName: getIdentity(from, true),
+                to: to,
+                toName: getIdentity(to, true),
+                amount: amountFloat
+            });
+            
+            // Limit เก็บไว้แค่ 1000 รายการ เพื่อไม่ให้เมมโมรี่ล้น
+            if(liveHistoryData.length > 1000) liveHistoryData.pop();
+            localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(liveHistoryData));
+
+            // แสดงขึ้นจอ
+            const placeholder = document.getElementById('radarPlaceholder');
+            if(placeholder) placeholder.remove();
+            
+            renderRowUI(from, to, amountFloat, timestamp, isPast);
+        }
+
+        // วาด UI ทีละแถว
+        function renderRowUI(from, to, amountFloat, timestamp, isPast) {
+            const tbody = document.getElementById('txTableBody');
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#efebe9] new-transfer transition-all";
             
             tr.innerHTML = `
+                <td class="p-4 align-top text-xs text-[#8d6e63] font-medium">${timestamp}</td>
                 <td class="p-4 align-top">${getIdentity(from)}</td>
                 <td class="p-4 align-top">${getIdentity(to)}</td>
                 <td class="p-4 text-right font-black text-emerald-700 text-lg align-top">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
             `;
 
-            tbody.insertBefore(tr, tbody.firstChild); 
-            // ให้ไฟกระพริบเตือนสัก 4 วินาทีแล้วหยุด
-            setTimeout(() => tr.classList.remove('new-transfer'), 4000);
+            if (isPast) {
+                tbody.appendChild(tr); 
+                tr.classList.remove('new-transfer');
+            } else {
+                tbody.insertBefore(tr, tbody.firstChild); 
+                setTimeout(() => tr.classList.remove('new-transfer'), 4000);
+            }
+        }
+
+        // ฟังก์ชันโหลดข้อมูลเป็นไฟล์ CSV (Excel)
+        function exportToCSV() {
+            if (liveHistoryData.length === 0) {
+                alert("ยังไม่มีประวัติการโอนให้ดาวน์โหลด");
+                return;
+            }
+
+            // สร้าง Header ของ Excel
+            let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF รองรับภาษาไทย
+            csvContent += "Time,From (Address),From (Name),To (Address),To (Name),Amount\n";
+
+            // ใส่ข้อมูลแต่ละแถว
+            liveHistoryData.forEach(row => {
+                const line = `"${row.timestamp}","${row.from}","${row.fromName}","${row.to}","${row.toName}","${row.amount}"`;
+                csvContent += line + "\n";
+            });
+
+            // สั่งโหลดลงเครื่อง
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `GE_Vote_Radar_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         }
 
         loadWalletData();
