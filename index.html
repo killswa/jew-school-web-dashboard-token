@@ -135,7 +135,7 @@
         };
 
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_v5"; // เปลี่ยนเวอร์ชัน Cache เพื่อบังคับอัปเดต
+        const CACHE_KEY = "bnk_leaderboard_cache_v6"; // รีเซ็ต Cache เพื่อความชัวร์
 
         const ABI = [
             "function name() view returns (string)",
@@ -300,8 +300,8 @@
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
 
-                // ดึงประวัติธุรกรรมโดยใช้ Proxy ตัวใหม่แก้ปัญหา CORS
-                await loadPastTransactionsFromExplorer(contract.address);
+                // ดึงประวัติธุรกรรม (แผน A + แผน B)
+                await loadPastTransactionsFromExplorer(contract, provider);
 
                 await fetchBalancesAndLeaderboard(contract);
 
@@ -333,34 +333,52 @@
             }
         }
 
-        // ฟังก์ชันดึงประวัติผ่าน API โดยเปลี่ยนมาใช้ Proxy ตัวใหม่ที่เสถียรกว่า (corsproxy.io)
-        async function loadPastTransactionsFromExplorer(contractAddress) {
+        // ฟังก์ชันดึงประวัติ: แผน A ใช้ API (AllOrigins Raw) -> แผน B ใช้ Ethers.js ดึงย้อนหลังจาก RPC โดยตรง
+        async function loadPastTransactionsFromExplorer(contract, provider) {
             const tbody = document.getElementById('txTableBody');
+            
             try {
-                // URL ของ API Token X Explorer
-                const targetUrl = `https://explorer.tokenx.finance/api?module=token&action=tokentx&contractaddress=${contractAddress}&page=1&offset=20&sort=desc`;
-                
-                // เปลี่ยนมาใช้ corsproxy.io (ทำงานได้เร็วกว่าและคืนค่าเป็น JSON โดยตรง)
-                const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+                // แผน A: ดึงจาก Token X Explorer API โดยใช้ AllOrigins Raw Proxy (คืนค่า JSON ไม่ต้องใช้ .contents)
+                const targetUrl = `https://explorer.tokenx.finance/api?module=token&action=tokentx&contractaddress=${contract.address}&page=1&offset=20&sort=desc`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
                 
                 const response = await fetch(proxyUrl);
-                
-                // อ่านค่าเป็น JSON ได้ทันที ไม่ต้อง .contents 
                 const data = await response.json();
 
-                if (data && data.status === "1" && data.result.length > 0) {
+                if (data && data.status === "1" && data.result && data.result.length > 0) {
                     tbody.innerHTML = '';
-                    // วนลูปโชว์ 20 ธุรกรรมล่าสุด
                     data.result.slice(0, 20).forEach(tx => {
                         const amountFloat = parseFloat(ethers.utils.formatUnits(tx.value, 18));
                         addTransactionToTable(tx.from, tx.to, amountFloat, true);
                     });
+                    return; // ถ้าสำเร็จให้จบฟังก์ชันเลย
                 } else {
-                    throw new Error("No data from API or Empty Result");
+                    throw new Error("Proxy API returns empty or error status.");
                 }
             } catch (err) {
-                console.error("Explorer API Fetch Error:", err);
-                tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่สามารถดึงประวัติย้อนหลังได้ (รอสตรีม Real-time ใหม่ล่าสุด...)</td></tr>`;
+                console.warn("API Proxy failed, falling back to RPC...", err);
+                
+                // แผน B: ถ้า Proxy พัง ให้ดึงจาก Blockchain RPC โดยตรง (ย้อนหลัง 800 บล็อก กันโดนแบน)
+                try {
+                    const currentBlock = await provider.getBlockNumber();
+                    const fromBlock = Math.max(0, currentBlock - 800); 
+                    const filter = contract.filters.Transfer();
+                    const logs = await contract.queryFilter(filter, fromBlock, currentBlock);
+
+                    if (logs.length > 0) {
+                        tbody.innerHTML = '';
+                        logs.reverse().slice(0, 20).forEach(log => {
+                            const { from, to, value } = log.args;
+                            const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
+                            addTransactionToTable(from, to, amountFloat, true);
+                        });
+                    } else {
+                        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่พบประวัติในช่วง 800 บล็อกล่าสุด (รอสตรีม Real-time...)</td></tr>`;
+                    }
+                } catch (rpcErr) {
+                    console.error("RPC Fetch Error:", rpcErr);
+                    tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-[#8d6e63]">ไม่สามารถดึงประวัติย้อนหลังได้ (รอสตรีม Real-time ใหม่ล่าสุด...)</td></tr>`;
+                }
             }
         }
 
