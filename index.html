@@ -161,7 +161,8 @@
                 </div>
             </div>
 
-            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
+            <!-- ขยายตารางนี้ให้ยาวขึ้นเป็น max-h-[800px] -->
+            <div class="overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
@@ -436,7 +437,7 @@
                     } catch (error) {
                         // ไม่ปล่อยให้ Error พ่นลง Console
                     }
-                }, 10000); // ทำงานทุกๆ 10 วินาที เพื่อถนอมเซิร์ฟเวอร์ Token X
+                }, 10000); 
 
             } catch (error) {
                 console.error("Blockchain Error:", error);
