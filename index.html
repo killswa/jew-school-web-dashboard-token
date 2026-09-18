@@ -161,7 +161,6 @@
                 </div>
             </div>
 
-            <!-- ขยายความยาวตารางให้ยาวขึ้น -->
             <div class="overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
@@ -196,8 +195,8 @@
         };
         
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_ge_v5"; 
-        const HISTORY_CACHE_KEY = "bnk_live_history_ge_v5"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_ge_v6"; 
+        const HISTORY_CACHE_KEY = "bnk_live_history_ge_v6"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -214,6 +213,21 @@
         let liveHistoryData = []; 
         let sessionVolume = 0.00;
 
+        // ฟังก์ชันล้างขยะ LocalStorage เพื่อแก้ปัญหา QuotaExceededError
+        function cleanupOldCaches() {
+            try {
+                for(let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('bnk_leaderboard_cache') && key !== CACHE_KEY) {
+                        localStorage.removeItem(key);
+                    }
+                    if (key && key.startsWith('bnk_live_history') && key !== HISTORY_CACHE_KEY) {
+                        localStorage.removeItem(key);
+                    }
+                }
+            } catch(e) { console.warn("Cleanup error", e); }
+        }
+
         function switchToken(tokenKey) {
             if(tokenKey === 'BNK') {
                 location.reload();
@@ -223,6 +237,7 @@
         }
 
         async function loadWalletData() {
+            cleanupOldCaches(); // ล้างแคชขยะก่อนเริ่มงาน
             try {
                 const response = await fetch(DATA_JSON_URL);
                 const data = await response.json();
@@ -294,10 +309,14 @@
                         balance: balFloat
                     };
                 } catch(e) {}
+                
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                if ((i + 1) % 20 === 0 || i === uniqueAddresses.length - 1) {
-                    localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
+                // ลดความถี่การเซฟลงเหลือเซฟทุกๆ 100 รายการ เพื่อไม่ให้เบราว์เซอร์ทำงานหนัก
+                if ((i + 1) % 100 === 0 || i === uniqueAddresses.length - 1) {
+                    try {
+                        localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
+                    } catch(e) { console.warn("Storage quota limit reached, skipping cache save."); }
                     renderLeaderboard();
                 }
             }
@@ -393,7 +412,6 @@
 
                 // ==========================================
                 // THE ULTIMATE BYPASS: Block Receipt Scanner
-                // ทะลวงกำแพงบล็อกเชนด้วยการแกะกล่องพัสดุทีละบล็อก
                 // ==========================================
                 let lastCheckedBlock = await provider.getBlockNumber();
                 
@@ -402,16 +420,12 @@
                         const currentBlock = await provider.getBlockNumber();
                         if (currentBlock > lastCheckedBlock) {
                             
-                            // 1. วนลูปหากล่องพัสดุ (Block) ที่เพิ่งเกิดใหม่
                             for (let i = lastCheckedBlock + 1; i <= currentBlock; i++) {
                                 const block = await provider.getBlockWithTransactions(i);
                                 if (!block || !block.transactions) continue;
                                 
-                                // 2. คุ้ยดูทุกรายการโอนในกล่องนั้น
                                 for (let tx of block.transactions) {
-                                    // 3. ถ้าปลายทางคือ Contract เหรียญของเรา
                                     if (tx.to && tx.to.toLowerCase() === currentTokenConfig.contractAddress.toLowerCase()) {
-                                        // 4. ขอดูใบเสร็จเพื่อความชัวร์
                                         const receipt = await provider.getTransactionReceipt(tx.hash);
                                         if (receipt && receipt.status === 1) {
                                             for (let log of receipt.logs) {
@@ -422,10 +436,8 @@
                                                         const to = parsed.args.to;
                                                         const amountFloat = parseFloat(ethers.utils.formatUnits(parsed.args.value, 18));
                                                         
-                                                        // เด้งขึ้นตารางเรดาร์ทันที!
                                                         saveAndRenderLiveTransfer(from, to, amountFloat, false);
 
-                                                        // อัปเดตตาราง Leaderboard เบื้องหลัง
                                                         let needsUpdate = false;
                                                         const fromLower = from.toLowerCase();
                                                         const toLower = to.toLowerCase();
@@ -440,11 +452,13 @@
                                                             needsUpdate = true;
                                                         }
                                                         if (needsUpdate) {
-                                                            localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
+                                                            try {
+                                                                localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
+                                                            } catch(e) {}
                                                             renderLeaderboard();
                                                         }
                                                     }
-                                                } catch(e) { /* ละเว้น Event อื่นๆ ที่ไม่ใช่การโอน */ }
+                                                } catch(e) { }
                                             }
                                         }
                                     }
@@ -455,7 +469,7 @@
                     } catch (error) {
                         // ปิดกั้น Error ไม่ให้พ่นลง Console กวนใจ
                     }
-                }, 5000); // แอบเข้าไปแกะกล่องทุกๆ 5 วินาที (คำสั่งปลอดภัย 100%)
+                }, 5000); 
 
             } catch (error) {
                 console.error("Blockchain Error:", error);
@@ -536,7 +550,9 @@
             });
             
             if(liveHistoryData.length > 2000) liveHistoryData.pop();
-            localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(liveHistoryData));
+            try {
+                localStorage.setItem(HISTORY_CACHE_KEY, JSON.stringify(liveHistoryData));
+            } catch(e) {}
 
             const placeholder = document.getElementById('radarPlaceholder');
             if(placeholder) placeholder.remove();
