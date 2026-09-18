@@ -76,7 +76,7 @@
                         <span class="animate-pulse">🔭</span> เรดาร์จับตายอดโหวต (GE Radar)
                     </h2>
                     <div class="flex items-center gap-2 mt-2">
-                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border border-green-300 font-bold">🟢 Stealth Radar กำลังทำงาน</span>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border border-green-300 font-bold">🟢 Block Scanner ทะลวงบล็อกเชนทำงาน</span>
                         <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded border border-blue-300 font-bold">💾 Backup อัตโนมัติ</span>
                     </div>
                 </div>
@@ -106,7 +106,7 @@
                     <tbody id="txTableBody">
                         <tr id="radarPlaceholder">
                             <td colspan="4" class="p-10 text-center text-[#8d6e63] font-bold">
-                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะดักจับและแปลงชื่อให้ทันทีที่มีการโอนเกิดขึ้น!
+                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะทะลวงอ่านบล็อกใหม่และแปลงชื่อให้ทันทีที่มีคนโอน!
                             </td>
                         </tr>
                     </tbody>
@@ -161,7 +161,7 @@
                 </div>
             </div>
 
-            <!-- ขยายตารางนี้ให้ยาวขึ้นเป็น max-h-[800px] -->
+            <!-- ขยายความยาวตารางให้ยาวขึ้น -->
             <div class="overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
@@ -196,8 +196,8 @@
         };
         
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_ge_v4"; 
-        const HISTORY_CACHE_KEY = "bnk_live_history_ge_v4"; 
+        const CACHE_KEY = "bnk_leaderboard_cache_ge_v5"; 
+        const HISTORY_CACHE_KEY = "bnk_live_history_ge_v5"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -392,7 +392,8 @@
                 await fetchBalancesAndLeaderboard(contract);
 
                 // ==========================================
-                // ระบบ STEALTH RADAR (แทนที่ contract.on)
+                // THE ULTIMATE BYPASS: Block Receipt Scanner
+                // ทะลวงกำแพงบล็อกเชนด้วยการแกะกล่องพัสดุทีละบล็อก
                 // ==========================================
                 let lastCheckedBlock = await provider.getBlockNumber();
                 
@@ -400,44 +401,61 @@
                     try {
                         const currentBlock = await provider.getBlockNumber();
                         if (currentBlock > lastCheckedBlock) {
-                            const filter = contract.filters.Transfer();
-                            // ดึงเฉพาะบล็อกใหม่ที่เพิ่งเกิดขึ้นเท่านั้น
-                            const logs = await contract.queryFilter(filter, lastCheckedBlock + 1, currentBlock);
+                            
+                            // 1. วนลูปหากล่องพัสดุ (Block) ที่เพิ่งเกิดใหม่
+                            for (let i = lastCheckedBlock + 1; i <= currentBlock; i++) {
+                                const block = await provider.getBlockWithTransactions(i);
+                                if (!block || !block.transactions) continue;
+                                
+                                // 2. คุ้ยดูทุกรายการโอนในกล่องนั้น
+                                for (let tx of block.transactions) {
+                                    // 3. ถ้าปลายทางคือ Contract เหรียญของเรา
+                                    if (tx.to && tx.to.toLowerCase() === currentTokenConfig.contractAddress.toLowerCase()) {
+                                        // 4. ขอดูใบเสร็จเพื่อความชัวร์
+                                        const receipt = await provider.getTransactionReceipt(tx.hash);
+                                        if (receipt && receipt.status === 1) {
+                                            for (let log of receipt.logs) {
+                                                try {
+                                                    const parsed = contract.interface.parseLog(log);
+                                                    if (parsed.name === "Transfer") {
+                                                        const from = parsed.args.from;
+                                                        const to = parsed.args.to;
+                                                        const amountFloat = parseFloat(ethers.utils.formatUnits(parsed.args.value, 18));
+                                                        
+                                                        // เด้งขึ้นตารางเรดาร์ทันที!
+                                                        saveAndRenderLiveTransfer(from, to, amountFloat, false);
 
-                            if (logs.length > 0) {
-                                logs.forEach(log => {
-                                    const { from, to, value } = log.args;
-                                    const amountFloat = parseFloat(ethers.utils.formatUnits(value, 18));
-                                    
-                                    // 1. บันทึกลงตารางเรดาร์
-                                    saveAndRenderLiveTransfer(from, to, amountFloat, false);
+                                                        // อัปเดตตาราง Leaderboard เบื้องหลัง
+                                                        let needsUpdate = false;
+                                                        const fromLower = from.toLowerCase();
+                                                        const toLower = to.toLowerCase();
 
-                                    // 2. อัปเดตตาราง Leaderboard ผู้ถือเหรียญ
-                                    let needsUpdate = false;
-                                    const fromLower = from.toLowerCase();
-                                    const toLower = to.toLowerCase();
-
-                                    if (whoBalances[fromLower]) {
-                                        whoBalances[fromLower].balance -= amountFloat;
-                                        if (whoBalances[fromLower].balance < 0) whoBalances[fromLower].balance = 0;
-                                        needsUpdate = true;
+                                                        if (whoBalances[fromLower]) {
+                                                            whoBalances[fromLower].balance -= amountFloat;
+                                                            if (whoBalances[fromLower].balance < 0) whoBalances[fromLower].balance = 0;
+                                                            needsUpdate = true;
+                                                        }
+                                                        if (whoBalances[toLower]) {
+                                                            whoBalances[toLower].balance += amountFloat;
+                                                            needsUpdate = true;
+                                                        }
+                                                        if (needsUpdate) {
+                                                            localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
+                                                            renderLeaderboard();
+                                                        }
+                                                    }
+                                                } catch(e) { /* ละเว้น Event อื่นๆ ที่ไม่ใช่การโอน */ }
+                                            }
+                                        }
                                     }
-                                    if (whoBalances[toLower]) {
-                                        whoBalances[toLower].balance += amountFloat;
-                                        needsUpdate = true;
-                                    }
-                                    if (needsUpdate) {
-                                        localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
-                                        renderLeaderboard();
-                                    }
-                                });
+                                }
                             }
                             lastCheckedBlock = currentBlock;
                         }
                     } catch (error) {
-                        // ไม่ปล่อยให้ Error พ่นลง Console
+                        // ปิดกั้น Error ไม่ให้พ่นลง Console กวนใจ
                     }
-                }, 10000); 
+                }, 5000); // แอบเข้าไปแกะกล่องทุกๆ 5 วินาที (คำสั่งปลอดภัย 100%)
 
             } catch (error) {
                 console.error("Blockchain Error:", error);
