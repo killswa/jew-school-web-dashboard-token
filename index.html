@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BNK Governance Dashboard - GE Radar Edition</title>
+    <title>GE6 Vote Dashboard - Radar Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
@@ -47,22 +47,23 @@
     <div class="max-w-7xl mx-auto space-y-6">
         
         <div class="flex gap-2 pb-2">
-            <button onclick="switchToken('BNK')" id="tab-BNK" class="px-5 py-2 rounded-lg font-bold school-btn shadow-sm">
-                BNK Governance Token
+            <!-- สลับให้ GE6 เป็นปุ่มหลัก -->
+            <button onclick="switchToken('GE6')" id="tab-GE6" class="px-5 py-2 rounded-lg font-bold school-btn shadow-sm">
+                GE6 Token (Live Radar)
             </button>
-            <button onclick="switchToken('NEW')" id="tab-NEW" class="px-5 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] border-2 border-[#bcaaa4] hover:bg-[#bcaaa4] transition-all">
-                New Token (GE Event - Coming Soon)
+            <button onclick="switchToken('BNK')" id="tab-BNK" class="px-5 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] border-2 border-[#bcaaa4] hover:bg-[#bcaaa4] transition-all">
+                BNK Governance Token
             </button>
         </div>
 
         <div class="school-card p-6 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold text-[#3e2723]" id="tokenName">BNK Governance Token</h1>
+                <h1 class="text-3xl font-extrabold text-[#3e2723]" id="tokenName">GE6 Token</h1>
                 <p class="text-[#8d6e63] font-medium mt-1" id="tokenSymbol">Loading...</p>
             </div>
             <div class="text-center md:text-right bg-[#efebe9] px-6 py-3 rounded-lg border border-[#d7ccc8]">
                 <p class="text-sm text-[#8d6e63] font-bold">Total Supply</p>
-                <p class="text-2xl font-black text-[#5d4037]" id="totalSupply">0 BNK</p>
+                <p class="text-2xl font-black text-[#5d4037]" id="totalSupply">0 GE6</p>
             </div>
         </div>
 
@@ -84,7 +85,7 @@
                 <div class="flex flex-col items-end gap-2">
                     <div class="bg-[#3e2723] text-white px-4 py-2 rounded-lg border-2 border-[#5d4037] shadow-inner text-right min-w-[200px]">
                         <p class="text-xs text-[#d7ccc8] font-bold uppercase tracking-wider">Volume โหวต/โอน สะสม</p>
-                        <p class="text-xl font-black text-emerald-400" id="liveVolume">0.00 <span class="text-sm text-white">BNK</span></p>
+                        <p class="text-xl font-black text-emerald-400" id="liveVolume">0.00 <span class="text-sm text-white" id="volSymbol">GE6</span></p>
                     </div>
                     
                     <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold shadow-sm transition-colors text-sm flex items-center gap-2">
@@ -106,7 +107,7 @@
                     <tbody id="txTableBody">
                         <tr id="radarPlaceholder">
                             <td colspan="4" class="p-10 text-center text-[#8d6e63] font-bold">
-                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะทะลวงอ่านบล็อกใหม่และแปลงชื่อให้ทันทีที่มีคนโอน!
+                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะทะลวงอ่านบล็อกใหม่และแปลงชื่อให้ทันทีที่มีการโหวต/โอน!
                             </td>
                         </tr>
                     </tbody>
@@ -118,7 +119,7 @@
         <div class="school-card p-6 rounded-xl border-t-8 border-orange-400">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
                 <div>
-                    <h2 class="text-2xl font-bold text-[#3e2723]">🔥 จัดอันดับผู้ใช้เหรียญสูงสุด (Top Voters / Spenders)</h2>
+                    <h2 class="text-2xl font-bold text-[#3e2723]">🔥 จัดอันดับผู้ใช้เหรียญสูงสุด (Top Voters)</h2>
                     <p class="text-sm text-[#8d6e63] mt-1">ใครทุ่มโหวตไปแล้วเท่าไหร่ (คำนวณจากยอดที่เรดาร์ดักจับได้)</p>
                 </div>
             </div>
@@ -135,7 +136,7 @@
                     </thead>
                     <tbody id="spendersBody">
                         <tr>
-                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-medium">รอการดักจับข้อมูลจากการโอนใหม่...</td>
+                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-medium">รอการดักจับข้อมูลจากการโหวตใหม่...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -188,15 +189,16 @@
             e.returnValue = ''; 
         });
 
+        // อัปเดตข้อมูลเป็นของเหรียญ GE6 เรียบร้อยแล้ว
         let currentTokenConfig = {
-            name: "BNK Governance Token",
-            symbol: "BNK",
-            contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d"
+            name: "GE6 Token",
+            symbol: "GE6",
+            contractAddress: "0x2f5c60bdE7A5ebD2b116BB03cB5232fA1Ea55F1C"
         };
         
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "bnk_leaderboard_cache_ge_v6"; 
-        const HISTORY_CACHE_KEY = "bnk_live_history_ge_v6"; 
+        const CACHE_KEY = "ge6_leaderboard_cache_v1"; 
+        const HISTORY_CACHE_KEY = "ge6_live_history_v1"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -213,15 +215,16 @@
         let liveHistoryData = []; 
         let sessionVolume = 0.00;
 
-        // ฟังก์ชันล้างขยะ LocalStorage เพื่อแก้ปัญหา QuotaExceededError
+        // ล้าง Cache ขยะเพื่อกัน QuotaExceededError
         function cleanupOldCaches() {
             try {
                 for(let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key && key.startsWith('bnk_leaderboard_cache') && key !== CACHE_KEY) {
+                    // ลบ cache เก่าที่ไม่ตรงกับ Key ปัจจุบัน
+                    if (key && key.includes('leaderboard_cache') && key !== CACHE_KEY) {
                         localStorage.removeItem(key);
                     }
-                    if (key && key.startsWith('bnk_live_history') && key !== HISTORY_CACHE_KEY) {
+                    if (key && key.includes('live_history') && key !== HISTORY_CACHE_KEY) {
                         localStorage.removeItem(key);
                     }
                 }
@@ -229,15 +232,15 @@
         }
 
         function switchToken(tokenKey) {
-            if(tokenKey === 'BNK') {
+            if(tokenKey === 'GE6') {
                 location.reload();
             } else {
-                alert("สลับมายังหน้า Token ใหม่ (รอรับ Address ของ GE Token จากอฟช.)");
+                alert("สลับไปใช้หน้าสำหรับ BNK Governance Token เดิม (ฟีเจอร์นี้สงวนไว้สำหรับ GE6)");
             }
         }
 
         async function loadWalletData() {
-            cleanupOldCaches(); // ล้างแคชขยะก่อนเริ่มงาน
+            cleanupOldCaches();
             try {
                 const response = await fetch(DATA_JSON_URL);
                 const data = await response.json();
@@ -312,11 +315,10 @@
                 
                 await new Promise(resolve => setTimeout(resolve, 50));
 
-                // ลดความถี่การเซฟลงเหลือเซฟทุกๆ 100 รายการ เพื่อไม่ให้เบราว์เซอร์ทำงานหนัก
                 if ((i + 1) % 100 === 0 || i === uniqueAddresses.length - 1) {
                     try {
                         localStorage.setItem(CACHE_KEY, JSON.stringify(whoBalances));
-                    } catch(e) { console.warn("Storage quota limit reached, skipping cache save."); }
+                    } catch(e) {}
                     renderLeaderboard();
                 }
             }
@@ -350,7 +352,7 @@
                     <td class="p-4 text-center">${rankBadge}</td>
                     <td class="p-4 font-semibold text-[#4a3b32] break-all">${holder.displayName}</td>
                     <td class="p-4 text-[#8d6e63] text-sm">${holder.codeWallet}</td>
-                    <td class="p-4 text-right font-bold text-emerald-700">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
+                    <td class="p-4 text-right font-bold text-emerald-700">${holder.balance.toLocaleString(undefined, {maximumFractionDigits: 2})} ${currentTokenConfig.symbol}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -382,7 +384,7 @@
                     <td class="p-4 text-center">${rankBadge}</td>
                     <td class="p-4 font-semibold text-[#3e2723] break-all">${spender.displayName}</td>
                     <td class="p-4 text-[#8d6e63] text-sm">${spender.codeWallet}</td>
-                    <td class="p-4 text-right font-black text-orange-600">${spender.spent.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
+                    <td class="p-4 text-right font-black text-orange-600">${spender.spent.toLocaleString(undefined, {maximumFractionDigits: 2})} ${currentTokenConfig.symbol}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -407,6 +409,7 @@
                 document.getElementById('tokenName').innerText = name;
                 document.getElementById('tokenSymbol').innerText = symbol;
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
+                document.getElementById('volSymbol').innerText = symbol;
 
                 await fetchBalancesAndLeaderboard(contract);
 
@@ -521,7 +524,7 @@
                         renderRowUI(tx.from, tx.to, tx.amount, tx.timestamp, true);
                     });
                     
-                    document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">BNK</span>`;
+                    document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">${currentTokenConfig.symbol}</span>`;
                     renderSpendersLeaderboard();
                 } catch(e){}
             }
@@ -531,7 +534,7 @@
             const timestamp = new Date().toLocaleString('th-TH');
             
             sessionVolume += amountFloat;
-            document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">BNK</span>`;
+            document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">${currentTokenConfig.symbol}</span>`;
 
             const fromLower = from.toLowerCase();
             if(!whoSpent[fromLower]) {
@@ -569,7 +572,7 @@
                 <td class="p-4 align-top text-xs text-[#8d6e63] font-medium">${timestamp}</td>
                 <td class="p-4 align-top">${getIdentity(from)}</td>
                 <td class="p-4 align-top">${getIdentity(to)}</td>
-                <td class="p-4 text-right font-black text-emerald-700 text-lg align-top">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})} BNK</td>
+                <td class="p-4 text-right font-black text-emerald-700 text-lg align-top">+ ${amountFloat.toLocaleString(undefined, {maximumFractionDigits: 2})} ${currentTokenConfig.symbol}</td>
             `;
 
             if (isPast) {
