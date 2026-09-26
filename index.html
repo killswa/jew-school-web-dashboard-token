@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GE6 Vote Dashboard - Radar Edition</title>
+    <title>BNK / GE6 Vote Dashboard - Radar Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <style>
@@ -46,24 +46,24 @@
 
     <div class="max-w-7xl mx-auto space-y-6">
         
-        <div class="flex gap-2 pb-2">
-            <!-- สลับให้ GE6 เป็นปุ่มหลัก -->
-            <button onclick="switchToken('GE6')" id="tab-GE6" class="px-5 py-2 rounded-lg font-bold school-btn shadow-sm">
+        <!-- ระบบ Tabs สลับเหรียญ -->
+        <div class="flex gap-2 pb-2" id="tabContainer">
+            <button onclick="switchToken('GE6')" id="tab-GE6" class="px-5 py-2 rounded-lg font-semibold shadow-sm transition-all">
                 GE6 Token (Live Radar)
             </button>
-            <button onclick="switchToken('BNK')" id="tab-BNK" class="px-5 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] border-2 border-[#bcaaa4] hover:bg-[#bcaaa4] transition-all">
+            <button onclick="switchToken('BNK')" id="tab-BNK" class="px-5 py-2 rounded-lg font-semibold shadow-sm transition-all">
                 BNK Governance Token
             </button>
         </div>
 
         <div class="school-card p-6 rounded-xl flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
-                <h1 class="text-3xl font-extrabold text-[#3e2723]" id="tokenName">GE6 Token</h1>
+                <h1 class="text-3xl font-extrabold text-[#3e2723]" id="tokenName">Loading...</h1>
                 <p class="text-[#8d6e63] font-medium mt-1" id="tokenSymbol">Loading...</p>
             </div>
             <div class="text-center md:text-right bg-[#efebe9] px-6 py-3 rounded-lg border border-[#d7ccc8]">
                 <p class="text-sm text-[#8d6e63] font-bold">Total Supply</p>
-                <p class="text-2xl font-black text-[#5d4037]" id="totalSupply">0 GE6</p>
+                <p class="text-2xl font-black text-[#5d4037]" id="totalSupply">0</p>
             </div>
         </div>
 
@@ -74,7 +74,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-4 border-[#d7ccc8] gap-4">
                 <div>
                     <h2 class="text-2xl font-black text-[#3e2723] flex items-center gap-2">
-                        <span class="animate-pulse">🔭</span> เรดาร์จับตายอดโหวต (GE Radar)
+                        <span class="animate-pulse">🔭</span> เรดาร์จับตายอดโหวต/โอน
                     </h2>
                     <div class="flex items-center gap-2 mt-2">
                         <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded border border-green-300 font-bold">🟢 Block Scanner ทะลวงบล็อกเชนทำงาน</span>
@@ -84,8 +84,8 @@
                 
                 <div class="flex flex-col items-end gap-2">
                     <div class="bg-[#3e2723] text-white px-4 py-2 rounded-lg border-2 border-[#5d4037] shadow-inner text-right min-w-[200px]">
-                        <p class="text-xs text-[#d7ccc8] font-bold uppercase tracking-wider">Volume โหวต/โอน สะสม</p>
-                        <p class="text-xl font-black text-emerald-400" id="liveVolume">0.00 <span class="text-sm text-white" id="volSymbol">GE6</span></p>
+                        <p class="text-xs text-[#d7ccc8] font-bold uppercase tracking-wider">Volume สะสม</p>
+                        <p class="text-xl font-black text-emerald-400" id="liveVolume">0.00 <span class="text-sm text-white" id="volSymbol">-</span></p>
                     </div>
                     
                     <button onclick="exportToCSV()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-md font-bold shadow-sm transition-colors text-sm flex items-center gap-2">
@@ -107,7 +107,7 @@
                     <tbody id="txTableBody">
                         <tr id="radarPlaceholder">
                             <td colspan="4" class="p-10 text-center text-[#8d6e63] font-bold">
-                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะทะลวงอ่านบล็อกใหม่และแปลงชื่อให้ทันทีที่มีการโหวต/โอน!
+                                📡 เปิดหน้านี้ทิ้งไว้ ระบบจะทะลวงอ่านบล็อกใหม่และแปลงชื่อให้ทันทีที่มีการโอน!
                             </td>
                         </tr>
                     </tbody>
@@ -119,8 +119,8 @@
         <div class="school-card p-6 rounded-xl border-t-8 border-orange-400">
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
                 <div>
-                    <h2 class="text-2xl font-bold text-[#3e2723]">🔥 จัดอันดับผู้ใช้เหรียญสูงสุด (Top Voters)</h2>
-                    <p class="text-sm text-[#8d6e63] mt-1">ใครทุ่มโหวตไปแล้วเท่าไหร่ (คำนวณจากยอดที่เรดาร์ดักจับได้)</p>
+                    <h2 class="text-2xl font-bold text-[#3e2723]">🔥 จัดอันดับยอดทุ่มโหวต / โอนออก (Top Spenders)</h2>
+                    <p class="text-sm text-[#8d6e63] mt-1">คำนวณสะสมจากยอดที่เรดาร์ดักจับได้</p>
                 </div>
             </div>
 
@@ -129,14 +129,14 @@
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
                             <th class="p-4 text-center w-24 font-bold">อันดับ</th>
-                            <th class="p-4 font-bold">ชื่อผู้โหวต (Voter)</th>
+                            <th class="p-4 font-bold">ชื่อ (Name)</th>
                             <th class="p-4 font-bold">รหัสกระเป๋า (CodeWallet)</th>
                             <th class="p-4 text-right font-bold text-orange-700">ยอดที่ใช้ไป (Total Spent)</th>
                         </tr>
                     </thead>
                     <tbody id="spendersBody">
                         <tr>
-                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-medium">รอการดักจับข้อมูลจากการโหวตใหม่...</td>
+                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-medium">รอการดักจับข้อมูลจากการโอนใหม่...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -148,7 +148,7 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
                 <div>
                     <h2 class="text-2xl font-bold text-[#3e2723]">💰 จัดอันดับผู้ถือเหรียญสูงสุด (Top Holders)</h2>
-                    <p class="text-sm text-[#8d6e63] mt-1">ยอดคงเหลือปัจจุบัน</p>
+                    <p class="text-sm text-[#8d6e63] mt-1">ยอดคงเหลือในกระเป๋าปัจจุบัน</p>
                 </div>
                 
                 <div class="flex flex-wrap items-center gap-3">
@@ -189,16 +189,32 @@
             e.returnValue = ''; 
         });
 
-        // อัปเดตข้อมูลเป็นของเหรียญ GE6 เรียบร้อยแล้ว
-        let currentTokenConfig = {
-            name: "GE6 Token",
-            symbol: "GE6",
-            contractAddress: "0x2f5c60bdE7A5ebD2b116BB03cB5232fA1Ea55F1C"
+        // ----------------------------------------------------
+        // ระบบจัดการ Tokens (Multi-Token Logic)
+        // ----------------------------------------------------
+        let activeTokenKey = localStorage.getItem('activeTokenMode') || 'GE6'; // ค่าเริ่มต้นให้เป็น GE6
+
+        const tokenConfigs = {
+            'GE6': {
+                name: "GE6 Token",
+                symbol: "GE6",
+                contractAddress: "0x2f5c60bdE7A5ebD2b116BB03cB5232fA1Ea55F1C",
+                cacheKey: "ge6_leaderboard_cache_v2",
+                historyKey: "ge6_live_history_v2"
+            },
+            'BNK': {
+                name: "BNK Governance Token",
+                symbol: "BNK",
+                contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d",
+                cacheKey: "bnk_leaderboard_cache_ge_v6",
+                historyKey: "bnk_live_history_ge_v6"
+            }
         };
-        
+
+        const currentTokenConfig = tokenConfigs[activeTokenKey];
+        const CACHE_KEY = currentTokenConfig.cacheKey;
+        const HISTORY_CACHE_KEY = currentTokenConfig.historyKey;
         const DATA_JSON_URL = "https://cdn.jsdelivr.net/gh/killswa/jew-school-web-dashboard-token@main/wallets.json";
-        const CACHE_KEY = "ge6_leaderboard_cache_v1"; 
-        const HISTORY_CACHE_KEY = "ge6_live_history_v1"; 
 
         const ABI = [
             "function name() view returns (string)",
@@ -215,28 +231,49 @@
         let liveHistoryData = []; 
         let sessionVolume = 0.00;
 
-        // ล้าง Cache ขยะเพื่อกัน QuotaExceededError
+        // อัปเดตหน้าตาปุ่ม Tabs ให้รู้ว่ากำลังดูเหรียญไหนอยู่
+        function updateTabStyles() {
+            const tabGE6 = document.getElementById('tab-GE6');
+            const tabBNK = document.getElementById('tab-BNK');
+            
+            const activeStyle = "px-5 py-2 rounded-lg font-bold school-btn shadow-sm transition-all";
+            const inactiveStyle = "px-5 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] border-2 border-[#bcaaa4] hover:bg-[#bcaaa4] transition-all";
+
+            if(activeTokenKey === 'GE6') {
+                tabGE6.className = activeStyle;
+                tabBNK.className = inactiveStyle;
+            } else {
+                tabBNK.className = activeStyle;
+                tabGE6.className = inactiveStyle;
+            }
+        }
+        updateTabStyles();
+
+        // ฟังก์ชันสลับเหรียญ (บันทึกค่าและรีเฟรชหน้าต่าง)
+        function switchToken(tokenKey) {
+            if (activeTokenKey !== tokenKey) {
+                localStorage.setItem('activeTokenMode', tokenKey);
+                location.reload();
+            }
+        }
+
+        // ล้าง Cache ขยะเพื่อกัน QuotaExceededError (เก็บไว้เฉพาะที่ใช้จริงๆ)
         function cleanupOldCaches() {
             try {
+                const validKeys = [
+                    tokenConfigs['GE6'].cacheKey, tokenConfigs['GE6'].historyKey,
+                    tokenConfigs['BNK'].cacheKey, tokenConfigs['BNK'].historyKey,
+                    'activeTokenMode'
+                ];
                 for(let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    // ลบ cache เก่าที่ไม่ตรงกับ Key ปัจจุบัน
-                    if (key && key.includes('leaderboard_cache') && key !== CACHE_KEY) {
-                        localStorage.removeItem(key);
-                    }
-                    if (key && key.includes('live_history') && key !== HISTORY_CACHE_KEY) {
-                        localStorage.removeItem(key);
+                    if (key && (key.includes('leaderboard_cache') || key.includes('live_history'))) {
+                        if (!validKeys.includes(key)) {
+                            localStorage.removeItem(key);
+                        }
                     }
                 }
             } catch(e) { console.warn("Cleanup error", e); }
-        }
-
-        function switchToken(tokenKey) {
-            if(tokenKey === 'GE6') {
-                location.reload();
-            } else {
-                alert("สลับไปใช้หน้าสำหรับ BNK Governance Token เดิม (ฟีเจอร์นี้สงวนไว้สำหรับ GE6)");
-            }
         }
 
         async function loadWalletData() {
@@ -265,7 +302,7 @@
         }
 
         function clearCacheAndReload() {
-            if(confirm("การรีเฟรชข้อมูลยอดคงเหลือ จะไม่ลบประวัติในเรดาร์ ยืนยันหรือไม่?")) {
+            if(confirm(`การรีเฟรชข้อมูลยอดคงเหลือของ ${currentTokenConfig.symbol} จะไม่ลบประวัติในเรดาร์ ยืนยันหรือไม่?`)) {
                 localStorage.removeItem(CACHE_KEY);
                 location.reload();
             }
@@ -413,9 +450,7 @@
 
                 await fetchBalancesAndLeaderboard(contract);
 
-                // ==========================================
                 // THE ULTIMATE BYPASS: Block Receipt Scanner
-                // ==========================================
                 let lastCheckedBlock = await provider.getBlockNumber();
                 
                 setInterval(async () => {
@@ -600,7 +635,7 @@
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `GE_Vote_Radar_${new Date().toISOString().slice(0,10)}.csv`);
+            link.setAttribute("download", `${currentTokenConfig.symbol}_Vote_Radar_${new Date().toISOString().slice(0,10)}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
