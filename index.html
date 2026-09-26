@@ -46,7 +46,7 @@
 
     <div class="max-w-7xl mx-auto space-y-6">
         
-        <!-- ระบบ Tabs สลับเหรียญ -->
+        <!-- ระบบ Tabs สลับเหรียญ แบบรองรับการเปิด 2 จอ -->
         <div class="flex gap-2 pb-2" id="tabContainer">
             <button onclick="switchToken('GE6')" id="tab-GE6" class="px-5 py-2 rounded-lg font-semibold shadow-sm transition-all">
                 GE6 Token (Live Radar)
@@ -190,9 +190,13 @@
         });
 
         // ----------------------------------------------------
-        // ระบบจัดการ Tokens (Multi-Token Logic)
+        // ระบบจัดการ Tokens แบบ URL Routing (เพื่อเปิด 2 จอได้อิสระ)
         // ----------------------------------------------------
-        let activeTokenKey = localStorage.getItem('activeTokenMode') || 'GE6'; // ค่าเริ่มต้นให้เป็น GE6
+        const urlParams = new URLSearchParams(window.location.search);
+        let activeTokenKey = urlParams.get('token');
+        if (activeTokenKey !== 'GE6' && activeTokenKey !== 'BNK') {
+            activeTokenKey = 'GE6'; // ค่าเริ่มต้นคือ GE6
+        }
 
         const tokenConfigs = {
             'GE6': {
@@ -231,7 +235,7 @@
         let liveHistoryData = []; 
         let sessionVolume = 0.00;
 
-        // อัปเดตหน้าตาปุ่ม Tabs ให้รู้ว่ากำลังดูเหรียญไหนอยู่
+        // อัปเดตหน้าตาปุ่ม Tabs ให้รู้ว่าแท็บนี้กำลังดูเหรียญไหนอยู่
         function updateTabStyles() {
             const tabGE6 = document.getElementById('tab-GE6');
             const tabBNK = document.getElementById('tab-BNK');
@@ -249,21 +253,19 @@
         }
         updateTabStyles();
 
-        // ฟังก์ชันสลับเหรียญ (บันทึกค่าและรีเฟรชหน้าต่าง)
+        // ฟังก์ชันสลับเหรียญ เปลี่ยน URL ให้เบราว์เซอร์แยกการจำค่าออกจากกัน
         function switchToken(tokenKey) {
             if (activeTokenKey !== tokenKey) {
-                localStorage.setItem('activeTokenMode', tokenKey);
-                location.reload();
+                window.location.href = window.location.pathname + '?token=' + tokenKey;
             }
         }
 
-        // ล้าง Cache ขยะเพื่อกัน QuotaExceededError (เก็บไว้เฉพาะที่ใช้จริงๆ)
+        // ล้าง Cache ขยะเพื่อกัน QuotaExceededError (เก็บไว้เฉพาะของ GE6 และ BNK ปัจจุบัน)
         function cleanupOldCaches() {
             try {
                 const validKeys = [
                     tokenConfigs['GE6'].cacheKey, tokenConfigs['GE6'].historyKey,
-                    tokenConfigs['BNK'].cacheKey, tokenConfigs['BNK'].historyKey,
-                    'activeTokenMode'
+                    tokenConfigs['BNK'].cacheKey, tokenConfigs['BNK'].historyKey
                 ];
                 for(let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
