@@ -203,8 +203,8 @@
                 name: "GE6 Token",
                 symbol: "GE6",
                 contractAddress: "0x2f5c60bdE7A5ebD2b116BB03cB5232fA1Ea55F1C",
-                cacheKey: "ge6_leaderboard_cache_v2",
-                historyKey: "ge6_live_history_v2"
+                cacheKey: "ge6_leaderboard_cache_v3",
+                historyKey: "ge6_live_history_v3"
             },
             'BNK': {
                 name: "BNK Governance Token",
@@ -235,7 +235,6 @@
         let liveHistoryData = []; 
         let sessionVolume = 0.00;
 
-        // อัปเดตหน้าตาปุ่ม Tabs ให้รู้ว่าแท็บนี้กำลังดูเหรียญไหนอยู่
         function updateTabStyles() {
             const tabGE6 = document.getElementById('tab-GE6');
             const tabBNK = document.getElementById('tab-BNK');
@@ -253,14 +252,12 @@
         }
         updateTabStyles();
 
-        // ฟังก์ชันสลับเหรียญ เปลี่ยน URL ให้เบราว์เซอร์แยกการจำค่าออกจากกัน
         function switchToken(tokenKey) {
             if (activeTokenKey !== tokenKey) {
                 window.location.href = window.location.pathname + '?token=' + tokenKey;
             }
         }
 
-        // ล้าง Cache ขยะเพื่อกัน QuotaExceededError (เก็บไว้เฉพาะของ GE6 และ BNK ปัจจุบัน)
         function cleanupOldCaches() {
             try {
                 const validKeys = [
@@ -323,6 +320,9 @@
             renderLeaderboard();
         }
 
+        // ==========================================
+        // ดึงอันดับแยกไว้ ไม่บล็อกเรดาร์ทำงาน
+        // ==========================================
         async function fetchBalancesAndLeaderboard(contract) {
             const uniqueAddresses = Object.keys(walletMapping);
             const progressEl = document.getElementById('loadingProgress');
@@ -450,9 +450,12 @@
                 document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
                 document.getElementById('volSymbol').innerText = symbol;
 
-                await fetchBalancesAndLeaderboard(contract);
+                // รันอัปเดตผู้นำแยกไว้ ไม่ให้บล็อกเรดาร์
+                fetchBalancesAndLeaderboard(contract);
 
-                // THE ULTIMATE BYPASS: Block Receipt Scanner
+                // ==========================================
+                // THE ULTIMATE BYPASS: Proxy/Contract Scanner
+                // ==========================================
                 let lastCheckedBlock = await provider.getBlockNumber();
                 
                 setInterval(async () => {
@@ -465,10 +468,14 @@
                                 if (!block || !block.transactions) continue;
                                 
                                 for (let tx of block.transactions) {
-                                    if (tx.to && tx.to.toLowerCase() === currentTokenConfig.contractAddress.toLowerCase()) {
-                                        const receipt = await provider.getTransactionReceipt(tx.hash);
-                                        if (receipt && receipt.status === 1) {
-                                            for (let log of receipt.logs) {
+                                    if (!tx.to) continue; // ข้ามพวก Contract Creation
+                                    
+                                    // ดึงใบเสร็จมาดูทั้งหมดโดยไม่สนว่า To เป็นใคร (แก้ปัญหาโหวตผ่าน Proxy Contract)
+                                    const receipt = await provider.getTransactionReceipt(tx.hash);
+                                    if (receipt && receipt.status === 1 && receipt.logs) {
+                                        for (let log of receipt.logs) {
+                                            // เช็กแค่ว่า Log นี้มาจาก Contract ของ GE6 จริงๆ
+                                            if (log.address && log.address.toLowerCase() === currentTokenConfig.contractAddress.toLowerCase()) {
                                                 try {
                                                     const parsed = contract.interface.parseLog(log);
                                                     if (parsed.name === "Transfer") {
