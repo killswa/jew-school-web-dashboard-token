@@ -189,9 +189,6 @@
             e.returnValue = ''; 
         });
 
-        // ----------------------------------------------------
-        // ระบบจัดการ Tokens แบบ URL Routing (เพื่อเปิด 2 จอได้อิสระ)
-        // ----------------------------------------------------
         const urlParams = new URLSearchParams(window.location.search);
         let activeTokenKey = urlParams.get('token');
         if (activeTokenKey !== 'GE6' && activeTokenKey !== 'BNK') {
@@ -238,6 +235,7 @@
         function updateTabStyles() {
             const tabGE6 = document.getElementById('tab-GE6');
             const tabBNK = document.getElementById('tab-BNK');
+            if(!tabGE6 || !tabBNK) return;
             
             const activeStyle = "px-5 py-2 rounded-lg font-bold school-btn shadow-sm transition-all";
             const inactiveStyle = "px-5 py-2 rounded-lg font-semibold bg-[#d7ccc8] text-[#5d4037] border-2 border-[#bcaaa4] hover:bg-[#bcaaa4] transition-all";
@@ -310,19 +308,16 @@
         function toggleSystemWallets() {
             hideSystemWallets = !hideSystemWallets;
             const btn = document.getElementById('toggleSystemBtn');
-            if (hideSystemWallets) {
+            if (hideSystemWallets && btn) {
                 btn.className = "text-xs bg-[#795548] text-white px-4 py-2 rounded-md border-2 border-[#5d4037] font-bold shadow-sm transition-colors";
                 btn.innerText = "👁️‍🗨️ แสดง System Wallet";
-            } else {
+            } else if (btn) {
                 btn.className = "text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold shadow-sm transition-colors";
                 btn.innerText = "👁️ ซ่อน System Wallet";
             }
             renderLeaderboard();
         }
 
-        // ==========================================
-        // ดึงอันดับแยกไว้ ไม่บล็อกเรดาร์ทำงาน
-        // ==========================================
         async function fetchBalancesAndLeaderboard(contract) {
             const uniqueAddresses = Object.keys(walletMapping);
             const progressEl = document.getElementById('loadingProgress');
@@ -332,14 +327,14 @@
                 try {
                     whoBalances = JSON.parse(cachedData);
                     renderLeaderboard();
-                    progressEl.innerText = "โหลดจาก Cache สำเร็จ";
+                    if(progressEl) progressEl.innerText = "โหลดจาก Cache สำเร็จ";
                 } catch(e) {}
             }
 
             for (let i = 0; i < uniqueAddresses.length; i++) {
                 const addr = uniqueAddresses[i]; 
                 if (!ethers.utils.isAddress(addr)) continue;
-                if (!cachedData) progressEl.innerText = `ดึงข้อมูล (${i + 1}/${uniqueAddresses.length})...`;
+                if (!cachedData && progressEl) progressEl.innerText = `ดึงข้อมูล (${i + 1}/${uniqueAddresses.length})...`;
 
                 try {
                     const bal = await contract.balanceOf(addr);
@@ -361,11 +356,12 @@
                     renderLeaderboard();
                 }
             }
-            progressEl.innerText = "อัปเดตครบถ้วน ✓";
+            if(progressEl) progressEl.innerText = "อัปเดตครบถ้วน ✓";
         }
 
         function renderLeaderboard() {
             const tbody = document.getElementById('leaderboardBody');
+            if(!tbody) return;
             tbody.innerHTML = '';
             let sortedHolders = Object.values(whoBalances);
             if (hideSystemWallets) {
@@ -399,6 +395,7 @@
 
         function renderSpendersLeaderboard() {
             const tbody = document.getElementById('spendersBody');
+            if(!tbody) return;
             tbody.innerHTML = '';
             let sortedSpenders = Object.values(whoSpent);
             
@@ -445,17 +442,21 @@
                     contract.totalSupply()
                 ]);
 
-                document.getElementById('tokenName').innerText = name;
-                document.getElementById('tokenSymbol').innerText = symbol;
-                document.getElementById('totalSupply').innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
-                document.getElementById('volSymbol').innerText = symbol;
+                // เกราะป้องกัน null
+                const elTokenName = document.getElementById('tokenName');
+                if(elTokenName) elTokenName.innerText = name;
+                
+                const elTokenSymbol = document.getElementById('tokenSymbol');
+                if(elTokenSymbol) elTokenSymbol.innerText = symbol;
+                
+                const elTotalSupply = document.getElementById('totalSupply');
+                if(elTotalSupply) elTotalSupply.innerText = parseFloat(ethers.utils.formatUnits(supply, 18)).toLocaleString() + " " + symbol;
+                
+                const elVolSymbol = document.getElementById('volSymbol');
+                if(elVolSymbol) elVolSymbol.innerText = symbol;
 
-                // รันอัปเดตผู้นำแยกไว้ ไม่ให้บล็อกเรดาร์
                 fetchBalancesAndLeaderboard(contract);
 
-                // ==========================================
-                // THE ULTIMATE BYPASS: Proxy/Contract Scanner
-                // ==========================================
                 let lastCheckedBlock = await provider.getBlockNumber();
                 
                 setInterval(async () => {
@@ -468,13 +469,11 @@
                                 if (!block || !block.transactions) continue;
                                 
                                 for (let tx of block.transactions) {
-                                    if (!tx.to) continue; // ข้ามพวก Contract Creation
+                                    if (!tx.to) continue;
                                     
-                                    // ดึงใบเสร็จมาดูทั้งหมดโดยไม่สนว่า To เป็นใคร (แก้ปัญหาโหวตผ่าน Proxy Contract)
                                     const receipt = await provider.getTransactionReceipt(tx.hash);
                                     if (receipt && receipt.status === 1 && receipt.logs) {
                                         for (let log of receipt.logs) {
-                                            // เช็กแค่ว่า Log นี้มาจาก Contract ของ GE6 จริงๆ
                                             if (log.address && log.address.toLowerCase() === currentTokenConfig.contractAddress.toLowerCase()) {
                                                 try {
                                                     const parsed = contract.interface.parseLog(log);
@@ -552,7 +551,7 @@
                 try {
                     liveHistoryData = JSON.parse(savedHistory);
                     const tbody = document.getElementById('txTableBody');
-                    if (liveHistoryData.length > 0) {
+                    if (liveHistoryData.length > 0 && tbody) {
                         tbody.innerHTML = '';
                         whoSpent = {}; 
                     }
@@ -568,7 +567,10 @@
                         renderRowUI(tx.from, tx.to, tx.amount, tx.timestamp, true);
                     });
                     
-                    document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">${currentTokenConfig.symbol}</span>`;
+                    const elLiveVol = document.getElementById('liveVolume');
+                    if (elLiveVol) {
+                        elLiveVol.innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">${currentTokenConfig.symbol}</span>`;
+                    }
                     renderSpendersLeaderboard();
                 } catch(e){}
             }
@@ -578,7 +580,10 @@
             const timestamp = new Date().toLocaleString('th-TH');
             
             sessionVolume += amountFloat;
-            document.getElementById('liveVolume').innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">${currentTokenConfig.symbol}</span>`;
+            const elLiveVol = document.getElementById('liveVolume');
+            if (elLiveVol) {
+                elLiveVol.innerHTML = `${sessionVolume.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} <span class="text-sm text-white">${currentTokenConfig.symbol}</span>`;
+            }
 
             const fromLower = from.toLowerCase();
             if(!whoSpent[fromLower]) {
@@ -609,6 +614,7 @@
 
         function renderRowUI(from, to, amountFloat, timestamp, isPast) {
             const tbody = document.getElementById('txTableBody');
+            if(!tbody) return;
             const tr = document.createElement('tr');
             tr.className = "border-b border-[#efebe9] new-transfer transition-all";
             
