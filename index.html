@@ -46,7 +46,6 @@
 
     <div class="max-w-7xl mx-auto space-y-6">
         
-        <!-- ระบบ Tabs สลับเหรียญ แบบรองรับการเปิด 2 จอ -->
         <div class="flex gap-2 pb-2" id="tabContainer">
             <button onclick="switchToken('GE6')" id="tab-GE6" class="px-5 py-2 rounded-lg font-semibold shadow-sm transition-all">
                 GE6 Token (Live Radar)
@@ -120,23 +119,25 @@
             <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b pb-3 border-[#d7ccc8] gap-3">
                 <div>
                     <h2 class="text-2xl font-bold text-[#3e2723]">🔥 จัดอันดับยอดทุ่มโหวต / โอนออก (Top Spenders)</h2>
-                    <p class="text-sm text-[#8d6e63] mt-1">คำนวณสะสมจากยอดที่เรดาร์ดักจับได้</p>
+                    <p class="text-sm text-[#8d6e63] mt-1">วิเคราะห์พฤติกรรมการโหวต (คำนวณสะสมจากเรดาร์)</p>
                 </div>
             </div>
 
-            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
+            <div class="overflow-x-auto max-h-[500px] overflow-y-auto rounded-lg border border-[#d7ccc8] bg-white">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
-                            <th class="p-4 text-center w-24 font-bold">อันดับ</th>
-                            <th class="p-4 font-bold">ชื่อ (Name)</th>
-                            <th class="p-4 font-bold">รหัสกระเป๋า (CodeWallet)</th>
-                            <th class="p-4 text-right font-bold text-orange-700">ยอดที่ใช้ไป (Total Spent)</th>
+                            <th class="p-3 text-center w-16 font-bold">#</th>
+                            <th class="p-3 font-bold">กระเป๋า (Wallet)</th>
+                            <th class="p-3 text-right font-bold text-orange-700">ยอดที่โหวต ↓</th>
+                            <th class="p-3 text-center font-bold text-[#5d4037]">ครั้ง</th>
+                            <th class="p-3 text-right font-bold text-[#8d6e63]">เฉลี่ย/ครั้ง</th>
+                            <th class="p-3 text-right font-bold text-emerald-700">ครั้งใหญ่สุด</th>
                         </tr>
                     </thead>
                     <tbody id="spendersBody">
                         <tr>
-                            <td colspan="4" class="p-10 text-center text-[#8d6e63] font-medium">รอการดักจับข้อมูลจากการโอนใหม่...</td>
+                            <td colspan="6" class="p-10 text-center text-[#8d6e63] font-medium">รอการดักจับข้อมูลจากการโอนใหม่...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -153,7 +154,7 @@
                 
                 <div class="flex flex-wrap items-center gap-3">
                     <button onclick="toggleSystemWallets()" id="toggleSystemBtn" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
-                        👁️ ซ่อน System Wallet
+                        👁️️ ซ่อน System Wallet
                     </button>
                     <button onclick="clearCacheAndReload()" class="text-xs bg-[#ffffff] hover:bg-[#efebe9] text-[#5d4037] px-4 py-2 rounded-md border-2 border-[#d7ccc8] font-bold transition-colors shadow-sm">
                         🔄 รีเฟรชยอดคงเหลือ
@@ -162,7 +163,7 @@
                 </div>
             </div>
 
-            <div class="overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-[#d7ccc8]">
+            <div class="overflow-x-auto max-h-[800px] overflow-y-auto rounded-lg border border-[#d7ccc8] bg-white">
                 <table class="w-full text-left border-collapse">
                     <thead class="sticky top-0 school-table-header shadow-sm z-10">
                         <tr>
@@ -192,7 +193,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         let activeTokenKey = urlParams.get('token');
         if (activeTokenKey !== 'GE6' && activeTokenKey !== 'BNK') {
-            activeTokenKey = 'GE6'; // ค่าเริ่มต้นคือ GE6
+            activeTokenKey = 'GE6';
         }
 
         const tokenConfigs = {
@@ -200,15 +201,15 @@
                 name: "GE6 Token",
                 symbol: "GE6",
                 contractAddress: "0x2f5c60bdE7A5ebD2b116BB03cB5232fA1Ea55F1C",
-                cacheKey: "ge6_leaderboard_cache_v3",
-                historyKey: "ge6_live_history_v3"
+                cacheKey: "ge6_leaderboard_cache_v4",
+                historyKey: "ge6_live_history_v4"
             },
             'BNK': {
                 name: "BNK Governance Token",
                 symbol: "BNK",
                 contractAddress: "0xA992ad80Fa6136702382123Ae717890Bc587491d",
-                cacheKey: "bnk_leaderboard_cache_ge_v6",
-                historyKey: "bnk_live_history_ge_v6"
+                cacheKey: "bnk_leaderboard_cache_ge_v7",
+                historyKey: "bnk_live_history_ge_v7"
             }
         };
 
@@ -270,7 +271,7 @@
                         }
                     }
                 }
-            } catch(e) { console.warn("Cleanup error", e); }
+            } catch(e) {}
         }
 
         async function loadWalletData() {
@@ -393,6 +394,9 @@
             });
         }
 
+        // ==========================================
+        // ฟังก์ชันวาดตารางจัดอันดับการทุ่มโหวต (แบบใหม่)
+        // ==========================================
         function renderSpendersLeaderboard() {
             const tbody = document.getElementById('spendersBody');
             if(!tbody) return;
@@ -400,10 +404,11 @@
             let sortedSpenders = Object.values(whoSpent);
             
             sortedSpenders = sortedSpenders.filter(spender => !spender.displayName.toLowerCase().includes("system wallet"));
+            // เรียงลำดับจากยอดโหวตสูงสุดไปต่ำสุด
             sortedSpenders.sort((a, b) => b.spent - a.spent);
 
             if (sortedSpenders.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-[#8d6e63]">ยังไม่มีข้อมูล (รอจับตาดูเรดาร์)</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-[#8d6e63]">ยังไม่มีข้อมูล (รอจับตาดูเรดาร์)</td></tr>`;
                 return;
             }
 
@@ -412,15 +417,23 @@
                 tr.className = "border-b border-[#efebe9] hover:bg-[#f5f1eb] transition-colors";
                 
                 let rankBadge = `<span class="text-[#8d6e63] font-bold">${index + 1}</span>`;
-                if(index === 0) rankBadge = `<span class="bg-amber-200 text-amber-900 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-amber-300">🥇 1</span>`;
-                if(index === 1) rankBadge = `<span class="bg-slate-200 text-slate-800 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-slate-300">🥈 2</span>`;
-                if(index === 2) rankBadge = `<span class="bg-orange-100 text-orange-900 px-3 py-1.5 rounded-full font-black text-sm shadow-sm border border-orange-200">🥉 3</span>`;
+                if(index === 0) rankBadge = `<span class="bg-amber-200 text-amber-900 px-2 py-1 rounded-md font-black text-sm shadow-sm border border-amber-300">1</span>`;
+                if(index === 1) rankBadge = `<span class="bg-slate-200 text-slate-800 px-2 py-1 rounded-md font-black text-sm shadow-sm border border-slate-300">2</span>`;
+                if(index === 2) rankBadge = `<span class="bg-orange-100 text-orange-900 px-2 py-1 rounded-md font-black text-sm shadow-sm border border-orange-200">3</span>`;
+
+                const avgSpent = spender.txCount > 0 ? (spender.spent / spender.txCount) : 0;
+                let walletDisplay = spender.displayName;
+                if(spender.codeWallet !== "-") {
+                    walletDisplay += ` <br><span class="text-xs text-[#8d6e63] font-normal">(${spender.codeWallet})</span>`;
+                }
 
                 tr.innerHTML = `
-                    <td class="p-4 text-center">${rankBadge}</td>
-                    <td class="p-4 font-semibold text-[#3e2723] break-all">${spender.displayName}</td>
-                    <td class="p-4 text-[#8d6e63] text-sm">${spender.codeWallet}</td>
-                    <td class="p-4 text-right font-black text-orange-600">${spender.spent.toLocaleString(undefined, {maximumFractionDigits: 2})} ${currentTokenConfig.symbol}</td>
+                    <td class="p-3 text-center align-middle">${rankBadge}</td>
+                    <td class="p-3 font-semibold text-[#3e2723] break-all align-middle">${walletDisplay}</td>
+                    <td class="p-3 text-right font-black text-orange-600 text-lg align-middle">${spender.spent.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    <td class="p-3 text-center font-bold text-[#5d4037] align-middle">${spender.txCount}</td>
+                    <td class="p-3 text-right font-medium text-[#8d6e63] align-middle">${avgSpent.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    <td class="p-3 text-right font-bold text-emerald-700 align-middle">${spender.maxSpent.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -442,7 +455,6 @@
                     contract.totalSupply()
                 ]);
 
-                // เกราะป้องกัน null
                 const elTokenName = document.getElementById('tokenName');
                 if(elTokenName) elTokenName.innerText = name;
                 
@@ -469,7 +481,7 @@
                                 if (!block || !block.transactions) continue;
                                 
                                 for (let tx of block.transactions) {
-                                    if (!tx.to) continue;
+                                    if (!tx.to) continue; 
                                     
                                     const receipt = await provider.getTransactionReceipt(tx.hash);
                                     if (receipt && receipt.status === 1 && receipt.logs) {
@@ -512,9 +524,7 @@
                             }
                             lastCheckedBlock = currentBlock;
                         }
-                    } catch (error) {
-                        // ปิดกั้น Error ไม่ให้พ่นลง Console กวนใจ
-                    }
+                    } catch (error) {}
                 }, 5000); 
 
             } catch (error) {
@@ -559,10 +569,22 @@
                     liveHistoryData.forEach(tx => {
                         sessionVolume += tx.amount;
                         const fromLower = tx.from.toLowerCase();
+                        
+                        // ระบบคำนวณข้อมูลใหม่
                         if(!whoSpent[fromLower]) {
-                            whoSpent[fromLower] = { displayName: tx.fromName, codeWallet: getCodeWallet(tx.from), spent: 0 };
+                            whoSpent[fromLower] = { 
+                                displayName: tx.fromName, 
+                                codeWallet: getCodeWallet(tx.from), 
+                                spent: 0,
+                                txCount: 0,
+                                maxSpent: 0
+                            };
                         }
                         whoSpent[fromLower].spent += tx.amount;
+                        whoSpent[fromLower].txCount += 1;
+                        if(tx.amount > whoSpent[fromLower].maxSpent) {
+                            whoSpent[fromLower].maxSpent = tx.amount;
+                        }
 
                         renderRowUI(tx.from, tx.to, tx.amount, tx.timestamp, true);
                     });
@@ -586,10 +608,22 @@
             }
 
             const fromLower = from.toLowerCase();
+            
+            // อัปเดตข้อมูลเจาะลึก
             if(!whoSpent[fromLower]) {
-                whoSpent[fromLower] = { displayName: getRawName(from), codeWallet: getCodeWallet(from), spent: 0 };
+                whoSpent[fromLower] = { 
+                    displayName: getRawName(from), 
+                    codeWallet: getCodeWallet(from), 
+                    spent: 0,
+                    txCount: 0,
+                    maxSpent: 0
+                };
             }
             whoSpent[fromLower].spent += amountFloat;
+            whoSpent[fromLower].txCount += 1;
+            if(amountFloat > whoSpent[fromLower].maxSpent) {
+                whoSpent[fromLower].maxSpent = amountFloat;
+            }
             renderSpendersLeaderboard();
 
             liveHistoryData.unshift({
